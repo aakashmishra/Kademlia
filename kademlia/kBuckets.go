@@ -16,7 +16,10 @@ type KBuckets struct {
 	findChan   chan FindWrap
 	buckets    [IDBits]KBucket
 }
-
+type ContactRecord struct{
+	*contact Contact
+	sortKey ID
+}
 type KBucket struct {
 	Contacts []Contact
 }

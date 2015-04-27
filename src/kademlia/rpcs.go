@@ -35,7 +35,7 @@ type PongMessage struct {
 func (kc *KademliaCore) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: Finish implementation
 	pong.MsgID = CopyID(ping.MsgID)
-    // Specify the sender
+	// Specify the sender
 	// Update contact, etc
 	return nil
 }
@@ -81,13 +81,13 @@ func (kc *KademliaCore) FindNode(req FindNodeRequest, res *FindNodeResult) error
 	// to find the k contacts closest to the NodeID
 	//left error implementation
 	//closest 20 contacts given
-	lis := kc.kademlia.Kbs.FindClosest(req.NodeID,20)
-	res.Nodes := make([]Contact,lis.len())
-	for i := 0; i < lis.Len(); i++ {
-      res.Nodes[i] = lis.At(i).(*ContactRecord).node
-    	}
-  	}
-  	return nil
+	lis := kc.kademlia.Kbs.FindClosest(req.NodeID, k)
+	res.Nodes = make([]Contact, len(lis))
+	for i := 0; i < len(lis); i++ {
+		res.Nodes[i] = lis[i].(*ContactRecord).node
+	}
+
+	return nil
 
 }
 
@@ -122,10 +122,10 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	// lis := kc.kademlia.Kbs.FindClosest(req.NodeID,20)
 	// res.Nodes := make([]Contact,lis.len())
 	// for i := 0; i < lis.Len(); i++ {
- //      res.Nodes[i] = *lis.At(i).(*ContactRecord).node
- //    	}
- //  	}
- //  }
-  	return nil
+	//      res.Nodes[i] = *lis.At(i).(*ContactRecord).node
+	//    	}
+	//  	}
+	//  }
+	return nil
 
 }

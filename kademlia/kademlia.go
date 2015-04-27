@@ -169,6 +169,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 
 	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
 	log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
+	k.Kbs.Update(pong.Sender)
 	return "OK:" + pong.MsgID.AsString()
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
@@ -200,9 +201,9 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 		log.Printf("Call: ", err)
 		return "ERR: Not implemented"
 	}
-	for i := 0; i<len(receive.Nodes); i++ {
-    	log.Printf(Nodes[i])
-    }
+	for i := 0; i < len(receive.Nodes); i++ {
+		log.Printf(Nodes[i])
+	}
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	return "OK" + receive.MsgID.AsString()
@@ -228,8 +229,8 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	// 	return "ERR: Not implemented"
 	// }
 	// for i := 0; i<len(receive.Nodes); i++ {
- //    	log.Printf(Nodes[i])
- //    }
+	//    	log.Printf(Nodes[i])
+	//    }
 	// // TODO: Implement
 	// // If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	// return "OK" + receive.MsgID.AsString()

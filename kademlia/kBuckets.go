@@ -1,11 +1,11 @@
 package kademlia
 
 import (
-	"log"
-	"strings"
-	"fmt"
 	"container/vector"
+	"fmt"
+	"log"
 	"sort"
+	"strings"
 )
 
 type KBuckets struct {
@@ -78,7 +78,7 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 	prefixLen := distance.PrefixLen()
 	// log.Println("prefixLen: ", prefixLen)
 
-	bucket = &kbs.buckets[159-prefixLen]
+	bucket = &kbs.buckets[prefixLen]
 	contactIndex = -1
 	for index, otherContact := range bucket.Contacts {
 		if id.Equals(otherContact.NodeID) {
@@ -126,39 +126,39 @@ func (kbs *KBuckets) update(contact Contact) {
 	}
 }
 func (rec *ContactRecord) Less(other interface{}) bool {
-  return rec.sortKey.Less(other.(*ContactRecord).sortKey);
+	return rec.sortKey.Less(other.(*ContactRecord).sortKey)
 }
 
-func copyToVector(start int, end int ,array []Contacts, vec *vector.Vector, target ID) {
-  for elt := start; elt < end; elt ++ {
-    contact := 	array[elt];
-    vec.Push(&ContactRecord{contact, contact.id.Xor(target)});
-  }
+func copyToVector(start int, end int, array []Contacts, vec *vector.Vector, target ID) {
+	for elt := start; elt < end; elt++ {
+		contact := array[elt]
+		vec.Push(&ContactRecord{contact, contact.id.Xor(target)})
+	}
 }
 
 func (table *KBuckets) FindClosest(target ID, count int) (ret *vector.Vector) {
-  ret = new(vector.Vector).Resize(0, count);
- //find which bucket it belongs to
-  bucket_num := target.Xor(table.node.id).PrefixLen();
- //load the required Bucket into the bucket
-  bucket := table.Buckets[bucket_num];
- //copy all the bucket items and store it in a vector ret
-  copyToVector(0, len(bucket), bucket, ret, target);
- //if at all the length of the vector is not satisfied then the other buckets are taken into consideration
-  for i := 1; (bucket_num-i >= 0 || bucket_num+i < IDBits) && ret.Len() < count; i++ {
-    if bucket_num - i >= 0 {
-      bucket = table.buckets[bucket_num - i];
-      copyToVector(0, len(bucket), bucket,ret, target);
-    }
-    if bucket_num + i < IDBits{
-      bucket = table.buckets[bucket_num + i];
-      copyToVector(0, len(bucket), bucket, ret, target);
-    }
-  }
-  
-  sort.Sort(ret);
-  if ret.Len() > count {
-    ret.Cut(count, ret.Len());
-  }
-  return;
+	ret = new(vector.Vector).Resize(0, count)
+	//find which bucket it belongs to
+	bucket_num := target.Xor(table.node.id).PrefixLen()
+	//load the required Bucket into the bucket
+	bucket := table.Buckets[bucket_num]
+	//copy all the bucket items and store it in a vector ret
+	copyToVector(0, len(bucket), bucket, ret, target)
+	//if at all the length of the vector is not satisfied then the other buckets are taken into consideration
+	for i := 1; (bucket_num-i >= 0 || bucket_num+i < IDBits) && ret.Len() < count; i++ {
+		if bucket_num-i >= 0 {
+			bucket = table.buckets[bucket_num-i]
+			copyToVector(0, len(bucket), bucket, ret, target)
+		}
+		if bucket_num+i < IDBits {
+			bucket = table.buckets[bucket_num+i]
+			copyToVector(0, len(bucket), bucket, ret, target)
+		}
+	}
+
+	sort.Sort(ret)
+	if ret.Len() > count {
+		ret.Cut(count, ret.Len())
+	}
+	return
 }

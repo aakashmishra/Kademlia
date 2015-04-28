@@ -183,6 +183,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	log.Printf(peerStr)
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
@@ -191,17 +192,18 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 
 	send := new(FindNodeRequest)
 	receive := new(FindNodeResult)
-	send.Sender = contact
+	send.Sender = *contact
 	send.MsgID = NewRandomID()
 	send.NodeID = searchKey
 
-	err = client.Call("KademliaCore.DoFindNode", send, &receive)
+	err = client.Call("KademliaCore.FindNode", send, &receive)
 	if err != nil {
 		log.Printf("Call: ", err)
 		return "ERR: Not implemented"
 	}
 	for i := 0; i<len(receive.Nodes); i++ {
     	log.Printf(receive.Nodes[i].NodeID.AsString())
+    	//log.Printf(receive.Nodes[i].NodeID.AsString())
     }
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"

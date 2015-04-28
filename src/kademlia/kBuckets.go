@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 	// vector "container/vector"
-	"sort"
+	//"sort"
 )
 
 type KBuckets struct {
@@ -29,6 +29,7 @@ type FindWrap struct {
 	nodeId      ID
 	contactChan chan *Contact
 }
+type ByName struct{ContactRecord}
 
 func CreateKBuckets(k int, selfID ID, kadem *Kademlia) (kbs *KBuckets) {
 	var buckets [IDBits]KBucket
@@ -82,7 +83,7 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 	prefixLen := distance.PrefixLen()
 	// log.Println("prefixLen: ", prefixLen)
 
-	bucket = &kbs.buckets[159-prefixLen]
+	bucket = &kbs.buckets[prefixLen]
 	contactIndex = -1
 	for index, otherContact := range bucket.Contacts {
 		if id.Equals(otherContact.NodeID) {
@@ -133,15 +134,16 @@ func (rec *ContactRecord) Less(other interface{}) bool {
 	return rec.sortKey.Less(other.(*ContactRecord).sortKey)
 }
 
-func copyToVector(start int, end int, array []Contact, target ID) *[]ContactRecord {
-	ret := make([]ContactRecord, 0)
+// func (s ByName) Less(i, j int) bool { return s.ContactRecord[i].sortKey < s.ContactRecord[j].sortKey }
+
+func copyToVector(start int, end int, array []Contact,ret *[]ContactRecord ,target ID)  {
+	//ret := make([]ContactRecord, 0)
 	for elt := start; elt < end; elt++ {
 		contact := array[elt]
-		ret = append(ret, ContactRecord{&contact, contact.NodeID.Xor(target)})
+		*ret = append(*ret, ContactRecord{&contact, contact.NodeID.Xor(target)})
 		// vec.Push(&ContactRecord{contact, contact.id.Xor(target)});
 	}
 
-	return &ret
 }
 
 func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
@@ -151,20 +153,24 @@ func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
 	//load the required Bucket into the bucket
 	bucket := table.buckets[bucket_num]
 	//copy all the bucket items and store it in a vector ret
-	ret = copyToVector(0, len(bucket.Contacts), bucket.Contacts, target)
+	copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
 	//if at all the length of the vector is not satisfied then the other buckets are taken into consideration
 	for i := 1; (bucket_num-i >= 0 || bucket_num+i < IDBits) && len(ret) < count; i++ {
 		if bucket_num-i >= 0 {
 			bucket = table.buckets[bucket_num-i]
-			copyToVector(0, len(bucket.Contacts), bucket.Contacts, target)
+			copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
 		}
 		if bucket_num+i < IDBits {
 			bucket = table.buckets[bucket_num+i]
-			copyToVector(0, len(bucket.Contacts), bucket.Contacts, target)
+			copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
 		}
 	}
 
-	sort.Sort(ret)
+	//sort.Sort(ret)
+	//  sortKey := func(p1, p2 *ContactRecord) bool {
+	// 	return p1.sortKey < p2.sortKey
+	// }
+	//sort.Sort({ret})
 	if len(ret) > count {
 		//ret.Cut(count, ret.Len());
 		ret = ret[:count]

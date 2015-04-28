@@ -34,7 +34,7 @@ func main() {
 	firstPeerStr := args[1]
 
 	// Create the Kademlia instance
-	fmt.Printf("kademlia starting up!\n")
+	fmt.Printf("kademlia starting up one two three!\n")
 	kadem := kademlia.NewKademlia(listenStr)
 
 	// Confirm our server is up with a PING request and then exit.

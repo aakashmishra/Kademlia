@@ -77,7 +77,7 @@ type FindNodeResult struct {
 
 func (kc *KademliaCore) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
-	res.MsgID = RandomID()
+	res.MsgID = NewRandomID()
 	// to find the k contacts closest to the NodeID
 	//left error implementation
 	//closest 20 contacts given

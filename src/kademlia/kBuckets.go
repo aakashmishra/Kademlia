@@ -144,7 +144,7 @@ func copyToVector(start int, end int, array []Contact, target ID) *[]ContactReco
 	return &ret
 }
 
-func (table *KBuckets) FindClosest(target ID, count int) *[]ContactRecord {
+func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
 	ret := make([]ContactRecord, 0)
 	//find which bucket it belongs to
 	bucket_num := target.Xor(table.selfID).PrefixLen()
@@ -165,7 +165,7 @@ func (table *KBuckets) FindClosest(target ID, count int) *[]ContactRecord {
 	}
 
 	sort.Sort(ret)
-	if ret.Len() > count {
+	if len(ret) > count {
 		//ret.Cut(count, ret.Len());
 		ret = ret[:count]
 	}

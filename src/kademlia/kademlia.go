@@ -19,12 +19,19 @@ const (
 	k     = 20
 )
 
+type FindReq struct {
+	key       ID
+	valueChan chan []byte
+}
+
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
 	Kbs         *KBuckets
-	HashTable map[ID][]byte
+	HashTable   map[ID][]byte
+	StoreChan   chan StoreRequest
+	FindChan    chan FindReq
 }
 
 func NewKademlia(laddr string) *Kademlia {
@@ -32,6 +39,12 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem := new(Kademlia)
 	kadem.NodeID = NewRandomID()
 	kadem.Kbs = CreateKBuckets(k, kadem.NodeID, kadem)
+
+	kadem.HashTable = make(map[ID][]byte)
+	kadem.StoreChan = make(chan StoreRequest, 100)
+	kadem.FindChan = make(chan FindReq, 100)
+
+	go kadem.LoopOverMap()
 
 	// Set up RPC server
 	// NOTE: KademliaCore is just a wrapper around Kademlia. This type includes
@@ -132,6 +145,18 @@ func NewKademlia(laddr string) *Kademlia {
 	return kadem
 }
 
+func (k *Kademlia) LoopOverMap() {
+	for {
+		select {
+		case storeReq := <-k.StoreChan:
+			k.HashTable[storeReq.Key] = storeReq.Value
+		case findReq := <-k.FindChan:
+			findReq.valueChan <- k.HashTable[findReq.key]
+		}
+
+	}
+}
+
 type NotFoundError struct {
 	id  ID
 	msg string
@@ -188,18 +213,18 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 
 	sender := new(StoreRequest)
 	receiver := new(StoreResult)
-	sender.Sender = contact
-	sender.MsgID 	= NewRandomID()
-	sender.Key    = key
-	sender.Value  = value
+	sender.Sender = *contact
+	sender.MsgID = NewRandomID()
+	sender.Key = key
+	sender.Value = value
 
 	err = client.Call("kademliaCore.Store", sender, &receiver)
-	if err != nil{
+	if err != nil {
 		log.Printf("Call: ", err)
-		return "ERR: Failed"
+		return "ERR: Store Failed"
 	}
 
-    return "OK" + receiver.MsgID.AsString()
+	return "OK:" + receiver.MsgID.AsString()
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
@@ -219,17 +244,16 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	// log.Println("Dofind")
 	// log.Println(send.NodeID)
 
-
 	err = client.Call("KademliaCore.FindNode", send, &receive)
 	if err != nil {
 		log.Printf("Call: ", err)
 		return "ERR: Not implemented"
 	}
-	for i := 0; i<len(receive.Nodes); i++ {
-    	// log.Printf(receive.Nodes[i].NodeID.AsString())
-    	log.Printf("contact: %v", receive.Nodes[i])
-    	//log.Printf(receive.Nodes[i].NodeID.AsString())
-    }
+	for i := 0; i < len(receive.Nodes); i++ {
+		// log.Printf(receive.Nodes[i].NodeID.AsString())
+		log.Printf("contact: %v", receive.Nodes[i])
+		//log.Printf(receive.Nodes[i].NodeID.AsString())
+	}
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	return "OK" + receive.MsgID.AsString()
@@ -239,7 +263,7 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
-		log.Fatal("DialHTTP: ", err)
+		log.Printf("DialHTTP: ", err)
 		return "ERR: Not implemented"
 	}
 
@@ -251,31 +275,29 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 
 	err = client.Call("KademliaCore.FindValue", send, &receive)
 	if err != nil {
-		log.Fatal("Call: ", err)
+		log.Printf("Call: ", err)
 		return "ERR: Not implemented"
 	}
-	for i := 0; i<len(receive.Nodes); i++ {
-       log.Printf("contact: %v", receive.Nodes[i])
-    }
+	for i := 0; i < len(receive.Nodes); i++ {
+		log.Printf("contact: %v", receive.Nodes[i])
+	}
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	return "OK" + receive.MsgID.AsString()
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	
+
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) string {
-	for key, value := range k.HashTable {
-		if k.HashTable[searchKey] != nil{
-			return "OK" + k.HashTable[searchKey].AsString()
-		}
-		else{
-			return "ERR: Not Found"
-		}
+	findReq := FindReq{searchKey, make(chan []byte, 1)}
+	k.FindChan <- findReq
+	val := <-findReq.valueChan
+	if val == nil {
+		return "ERR: Not Found"
+	} else {
+		return "OK: " + string(val)
 	}
-	// TODO: Implement
-	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {

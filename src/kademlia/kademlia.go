@@ -72,19 +72,19 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem.SelfContact = Contact{kadem.NodeID, host, uint16(port_int)}
 
 	// TESTING!!!!!
-	log.Printf("Testing Starts!!!!")
-	numContacts := 20
-	var contacts [20]Contact
-	for i := 0; i < numContacts; i++ {
-		var id ID
-		id[0] = byte(i)
-		contacts[i] = Contact{id, host, uint16(1609 + i)}
-	}
-	log.Printf("contacts %v", contacts)
+	// log.Printf("Testing Starts!!!!")
+	// numContacts := 30
+	// contacts := make([]Contact, numContacts)
+	// for i := 0; i < numContacts; i++ {
+	// 	var id ID
+	// 	id[0] = byte(i)
+	// 	contacts[i] = Contact{id, host, uint16(1609 + i)}
+	// }
+	// log.Printf("contacts %v", contacts)
 
-	for i := 0; i < numContacts; i++ {
-		kadem.Kbs.Update(contacts[i])
-	}
+	// for i := 0; i < numContacts; i++ {
+	// 	kadem.Kbs.Update(contacts[i])
+	// }
 	time.Sleep(1 * time.Second)
 
 	// log.Printf("kadem.Kbs.buckets %v", kadem.Kbs.buckets)

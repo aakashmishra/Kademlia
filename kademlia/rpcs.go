@@ -57,6 +57,8 @@ type StoreResult struct {
 
 func (kc *KademliaCore) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
+	kc.kademlia.HashTable[req.Key] = Value
+	kc.kademlia.Kbs.Update(req.Sender)
 	return nil
 }
 

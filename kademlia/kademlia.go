@@ -24,6 +24,7 @@ type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
 	Kbs         *KBuckets
+	HashTable map[ID][]byte
 }
 
 func NewKademlia(laddr string) *Kademlia {
@@ -178,7 +179,27 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	return "ERR: Not implemented"
+	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTP("tcp", peerStr)
+	if err != nil {
+		log.Printf("DialHTTP: ", err)
+		return "ERR: Not implemented"
+	}
+
+	sender := new(StoreRequest)
+	receiver := new(StoreResult)
+	send.Sender = contact
+	send.MsgID 	= NewRandomID()
+	send.Key    = key
+	send.Value  = value
+
+	err = client.Call("kademliaCore.Store", sender, &receiver)
+	if err != nil{
+		log.Printf("Call: ", err)
+		return "ERR: Failed"
+	}
+
+    return "OK" + receiver.MsgID.AsString()
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {

@@ -62,6 +62,7 @@ func (kc *KademliaCore) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 	kc.kademlia.StoreChan <- req
 	kc.kademlia.Kbs.Update(req.Sender)
+	res.MsgID = NewRandomID()
 	return nil
 }
 

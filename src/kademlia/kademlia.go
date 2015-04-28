@@ -218,7 +218,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	sender.Key = key
 	sender.Value = value
 
-	err = client.Call("kademliaCore.Store", sender, &receiver)
+	err = client.Call("KademliaCore.Store", sender, &receiver)
 	if err != nil {
 		log.Printf("Call: ", err)
 		return "ERR: Store Failed"

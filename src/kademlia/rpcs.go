@@ -6,6 +6,7 @@ package kademlia
 
 import (
 	"net"
+	// "log"
 )
 
 type KademliaCore struct {
@@ -37,6 +38,8 @@ func (kc *KademliaCore) Ping(ping PingMessage, pong *PongMessage) error {
 	pong.MsgID = CopyID(ping.MsgID)
 	pong.Sender = kc.kademlia.SelfContact
 	kc.kademlia.Kbs.Update(ping.Sender)
+	// Specify the sender
+	// Update contact, etc
 	return nil
 }
 
@@ -78,6 +81,7 @@ type FindNodeResult struct {
 func (kc *KademliaCore) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
 	res.MsgID = NewRandomID()
+	// log.Println(req.NodeID)
 	// to find the k contacts closest to the NodeID
 	//left error implementation
 	//closest 20 contacts given
@@ -112,6 +116,18 @@ type FindValueResult struct {
 
 func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
+	res.MsgID = NewRandomID()
+	// to find the k contacts closest to the NodeID
+	//left error implementation
+	//closest 20 contacts given
+	lis := kc.kademlia.Kbs.FindClosest(req.Key, k)
+	res.Nodes = make([]Contact, len(*lis))
+	y := *lis
+	for i := 0; i < len(*lis); i++ {
+		res.Nodes[i] = *y[i].contact
+	}
+
+	return nil
 	// res.MsgID = RandomID()
 
 	// if (kc.kademlia.key == req.Key){
@@ -127,6 +143,5 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	//    	}
 	//  	}
 	//  }
-	return nil
 
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 	// vector "container/vector"
-	//"sort"
+	"sort"
 )
 
 type KBuckets struct {
@@ -29,7 +29,31 @@ type FindWrap struct {
 	nodeId      ID
 	contactChan chan *Contact
 }
-type ByName struct{ContactRecord}
+
+type By func(p1, p2 *ContactRecord) bool
+
+func (by By) Sort(ContactRecords []ContactRecord) {
+	ps := &ContactRecordSorter{
+		ContactRecords: ContactRecords,
+		by:      by, // The Sort method's receiver is the function (closure) that defines the sort order.
+	}
+	sort.Sort(ps)
+}
+
+type ContactRecordSorter struct {
+	ContactRecords []ContactRecord
+	by      func(p1, p2 *ContactRecord) bool // Closure used in the Less method.
+}
+// type ByName struct{*[]ContactRecord}
+func (s *ContactRecordSorter) Len() int {
+	return len(s.ContactRecords)
+}
+func (s *ContactRecordSorter) Swap(i, j int) {
+	s.ContactRecords[i], s.ContactRecords[j] = s.ContactRecords[j], s.ContactRecords[i]
+}
+func (s *ContactRecordSorter) Less(i, j int) bool {
+	return s.by(&s.ContactRecords[i], &s.ContactRecords[j])
+}
 
 func CreateKBuckets(k int, selfID ID, kadem *Kademlia) (kbs *KBuckets) {
 	var buckets [IDBits]KBucket
@@ -134,12 +158,15 @@ func (rec *ContactRecord) Less(other interface{}) bool {
 	return rec.sortKey.Less(other.(*ContactRecord).sortKey)
 }
 
-// func (s ByName) Less(i, j int) bool { return s.ContactRecord[i].sortKey < s.ContactRecord[j].sortKey }
+// func (s ByName) Less(i, j int) bool { return s.ContactRecord[i].sortKey.Less(s.ContactRecord[j].sortKey) }
 
 func copyToVector(start int, end int, array []Contact,ret *[]ContactRecord ,target ID)  {
 	//ret := make([]ContactRecord, 0)
+	//log.Println(target)
 	for elt := start; elt < end; elt++ {
 		contact := array[elt]
+		// log.Println(contact.NodeID.AsString())
+		// log.Println(contact.NodeID.Xor(target))
 		*ret = append(*ret, ContactRecord{&contact, contact.NodeID.Xor(target)})
 		// vec.Push(&ContactRecord{contact, contact.id.Xor(target)});
 	}
@@ -148,6 +175,7 @@ func copyToVector(start int, end int, array []Contact,ret *[]ContactRecord ,targ
 
 func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
 	ret := make([]ContactRecord, 0)
+	// log.Println(target)
 	//find which bucket it belongs to
 	bucket_num := target.Xor(table.selfID).PrefixLen()
 	//load the required Bucket into the bucket
@@ -167,10 +195,14 @@ func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
 	}
 
 	//sort.Sort(ret)
-	//  sortKey := func(p1, p2 *ContactRecord) bool {
-	// 	return p1.sortKey < p2.sortKey
-	// }
+
+	sortKey := func(p1, p2 *ContactRecord) bool {
+		return p1.sortKey.Less(p2.sortKey)
+	}
+	By(sortKey).Sort(ret)
+
 	//sort.Sort({ret})
+
 	if len(ret) > count {
 		//ret.Cut(count, ret.Len());
 		ret = ret[:count]

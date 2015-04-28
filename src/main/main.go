@@ -224,6 +224,9 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
 			response = "ERR: Provided an invalid key (" + toks[2] + ")"
 			return
 		}
+		// log.Println("initial")
+		// log.Println(key)
+		// log.Println(contact)
 		response = k.DoFindNode(contact, key)
 
 	case toks[0] == "find_value":

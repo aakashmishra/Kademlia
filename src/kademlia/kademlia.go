@@ -85,29 +85,29 @@ func NewKademlia(laddr string) *Kademlia {
 	// 	log.Printf("found : %v err: %v", found, err)
 	// }
 
-	contact_1 := Contact{NewRandomID(), host, uint16(1)}
-	contact_2 := Contact{NewRandomID(), host, uint16(2)}
-	contact_3 := Contact{NewRandomID(), host, uint16(3)}
-	contact_4 := Contact{NewRandomID(), host, uint16(4)}
-	contact_4.NodeID[19] = kadem.SelfContact.NodeID[19]
-	contact_4.NodeID[18] = kadem.SelfContact.NodeID[18]
-	contact_5 := Contact{NewRandomID(), host, uint16(port_int)}
+	// contact_1 := Contact{NewRandomID(), host, uint16(1)}
+	// contact_2 := Contact{NewRandomID(), host, uint16(2)}
+	// contact_3 := Contact{NewRandomID(), host, uint16(3)}
+	// contact_4 := Contact{NewRandomID(), host, uint16(4)}
+	// contact_4.NodeID[19] = kadem.SelfContact.NodeID[19]
+	// contact_4.NodeID[18] = kadem.SelfContact.NodeID[18]
+	// contact_5 := Contact{NewRandomID(), host, uint16(port_int)}
 
-	log.Printf("contact_1 : %v", contact_1)
-	log.Printf("contact_2 : %v", contact_2)
-	log.Printf("contact_3 : %v", contact_3)
-	log.Printf("contact_4 : %v", contact_4)
-	log.Printf("contact_5 : %v", contact_5)
+	// log.Printf("contact_1 : %v", contact_1)
+	// log.Printf("contact_2 : %v", contact_2)
+	// log.Printf("contact_3 : %v", contact_3)
+	// log.Printf("contact_4 : %v", contact_4)
+	// log.Printf("contact_5 : %v", contact_5)
 
-	log.Printf("contact_1 distance: %v", kadem.Kbs.selfID.Xor(contact_1.NodeID))
-	log.Printf("contact_2 distance: %v", kadem.Kbs.selfID.Xor(contact_2.NodeID))
-	log.Printf("contact_3 distance: %v", kadem.Kbs.selfID.Xor(contact_3.NodeID))
-	log.Printf("contact_4 distance: %v", kadem.Kbs.selfID.Xor(contact_4.NodeID))
+	// log.Printf("contact_1 distance: %v", kadem.Kbs.selfID.Xor(contact_1.NodeID))
+	// log.Printf("contact_2 distance: %v", kadem.Kbs.selfID.Xor(contact_2.NodeID))
+	// log.Printf("contact_3 distance: %v", kadem.Kbs.selfID.Xor(contact_3.NodeID))
+	// log.Printf("contact_4 distance: %v", kadem.Kbs.selfID.Xor(contact_4.NodeID))
 
-	kadem.Kbs.Update(contact_1)
-	kadem.Kbs.Update(contact_2)
-	kadem.Kbs.Update(contact_3)
-	kadem.Kbs.Update(contact_4)
+	// kadem.Kbs.Update(contact_1)
+	// kadem.Kbs.Update(contact_2)
+	// kadem.Kbs.Update(contact_3)
+	// kadem.Kbs.Update(contact_4)
 
 	// time.Sleep(1 * time.Second)
 
@@ -195,6 +195,9 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	send.Sender = *contact
 	send.MsgID = NewRandomID()
 	send.NodeID = searchKey
+	// log.Println("Dofind")
+	// log.Println(send.NodeID)
+
 
 	err = client.Call("KademliaCore.FindNode", send, &receive)
 	if err != nil {
@@ -202,7 +205,8 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 		return "ERR: Not implemented"
 	}
 	for i := 0; i<len(receive.Nodes); i++ {
-    	log.Printf(receive.Nodes[i].NodeID.AsString())
+    	// log.Printf(receive.Nodes[i].NodeID.AsString())
+    	log.Printf("contact: %v", receive.Nodes[i])
     	//log.Printf(receive.Nodes[i].NodeID.AsString())
     }
 	// TODO: Implement
@@ -211,33 +215,33 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 }
 
 func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
-	// peerStr := contact.host.String() + ":" + strconv.Itoa(int(contact.port))
-	// client, err := rpc.DialHTTP("tcp", peerStr)
-	// if err != nil {
-	// 	log.Fatal("DialHTTP: ", err)
-	// 	return "ERR: Not implemented"
-	// }
+	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTP("tcp", peerStr)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+		return "ERR: Not implemented"
+	}
 
-	// send := new(FindValueRequest)
-	// receive := new(FindValueResult)
-	// send.sender = contact
-	// send.MsgID = NewRandomID()
-	// send.Key = searchKey
+	send := new(FindValueRequest)
+	receive := new(FindValueResult)
+	send.Sender = *contact
+	send.MsgID = NewRandomID()
+	send.Key = searchKey
 
-	// err = client.Call("KademliaCore.DoFindNode", send, &receive)
-	// if err != nil {
-	// 	log.Fatal("Call: ", err)
-	// 	return "ERR: Not implemented"
-	// }
-	// for i := 0; i<len(receive.Nodes); i++ {
- //    	log.Printf(Nodes[i])
- //    }
-	// // TODO: Implement
-	// // If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	// return "OK" + receive.MsgID.AsString()
+	err = client.Call("KademliaCore.FindValue", send, &receive)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return "ERR: Not implemented"
+	}
+	for i := 0; i<len(receive.Nodes); i++ {
+       log.Printf("contact: %v", receive.Nodes[i])
+    }
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	return "ERR: Not implemented"
+	return "OK" + receive.MsgID.AsString()
+	// TODO: Implement
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+	
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) string {

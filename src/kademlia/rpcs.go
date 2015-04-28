@@ -60,6 +60,9 @@ type StoreResult struct {
 
 func (kc *KademliaCore) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
+	m := make(chan kc.kademlia.HashTable,100)
+	m[req.Key] <- req.Value
+	kc.kademlia.Kbs.Update(req.Sender)
 	return nil
 }
 

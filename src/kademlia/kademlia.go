@@ -24,6 +24,7 @@ type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
 	Kbs         *KBuckets
+	HashTable map[ID][]byte
 }
 
 func NewKademlia(laddr string) *Kademlia {
@@ -178,7 +179,27 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	return "ERR: Not implemented"
+	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTP("tcp", peerStr)
+	if err != nil {
+		log.Printf("DialHTTP: ", err)
+		return "ERR: Not implemented"
+	}
+
+	sender := new(StoreRequest)
+	receiver := new(StoreResult)
+	sender.Sender = contact
+	sender.MsgID 	= NewRandomID()
+	sender.Key    = key
+	sender.Value  = value
+
+	err = client.Call("kademliaCore.Store", sender, &receiver)
+	if err != nil{
+		log.Printf("Call: ", err)
+		return "ERR: Failed"
+	}
+
+    return "OK" + receiver.MsgID.AsString()
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
@@ -245,9 +266,16 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) string {
+	for key, value := range k.HashTable {
+		if k.HashTable[searchKey] != nil{
+			return "OK" + k.HashTable[searchKey].AsString()
+		}
+		else{
+			return "ERR: Not Found"
+		}
+	}
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	return "ERR: Not implemented"
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {

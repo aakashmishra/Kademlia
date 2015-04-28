@@ -22,9 +22,3 @@ _testmain.go
 *.exe
 *.test
 *.prof
-
-*.a
-
-bin/main
-
-*.a

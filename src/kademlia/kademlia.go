@@ -208,7 +208,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
-		return "ERR: Not implemented"
+		return "ERR: Not able to connect"
 	}
 
 	sender := new(StoreRequest)
@@ -233,7 +233,7 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
-		return "ERR: Not implemented"
+		return "ERR: Not able to connect"
 	}
 
 	send := new(FindNodeRequest)
@@ -264,7 +264,7 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
-		return "ERR: Not implemented"
+		return "ERR: Not able to connect"
 	}
 
 	send := new(FindValueRequest)

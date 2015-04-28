@@ -72,20 +72,20 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem.SelfContact = Contact{kadem.NodeID, host, uint16(port_int)}
 
 	// TESTING!!!!!
-	log.Printf("Testing Starts!!!!")
-	numContacts := 20
-	var contacts [20]Contact
-	for i := 0; i < numContacts; i++ {
-		var id ID
-		id[0] = byte(i)
-		contacts[i] = Contact{id, host, uint16(1609 + i)}
-	}
-	log.Printf("contacts %v", contacts)
+	// log.Printf("Testing Starts!!!!")
+	// numContacts := 20
+	// var contacts [20]Contact
+	// for i := 0; i < numContacts; i++ {
+	// 	var id ID
+	// 	id[0] = byte(i)
+	// 	contacts[i] = Contact{id, host, uint16(1609 + i)}
+	// }
+	// log.Printf("contacts %v", contacts)
 
-	for i := 0; i < numContacts; i++ {
-		kadem.Kbs.Update(contacts[i])
-	}
-	time.Sleep(1 * time.Second)
+	// for i := 0; i < numContacts; i++ {
+	// 	kadem.Kbs.Update(contacts[i])
+	// }
+	// time.Sleep(1 * time.Second)
 
 	// log.Printf("kadem.Kbs.buckets %v", kadem.Kbs.buckets)
 
@@ -278,6 +278,7 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 		log.Printf("Call: ", err)
 		return "ERR: Not implemented"
 	}
+	log.Println(string(receive.Value))
 	for i := 0; i < len(receive.Nodes); i++ {
 		log.Printf("contact: %v", receive.Nodes[i])
 	}
@@ -298,6 +299,13 @@ func (k *Kademlia) LocalFindValue(searchKey ID) string {
 	} else {
 		return "OK: " + string(val)
 	}
+}
+
+func (k *Kademlia) LocalFindValueval(searchKey ID) []byte {
+	findReq := FindReq{searchKey, make(chan []byte, 1)}
+	k.FindChan <- findReq
+	val := <-findReq.valueChan
+	return val
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {

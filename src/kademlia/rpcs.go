@@ -6,6 +6,7 @@ package kademlia
 
 import (
 	"net"
+	"strings"
 	// "log"
 )
 
@@ -123,14 +124,19 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	// to find the k contacts closest to the NodeID
 	//left error implementation
 	//closest 20 contacts given
-	lis := kc.kademlia.Kbs.FindClosest(req.Key, k)
-	res.Nodes = make([]Contact, len(*lis))
-	y := *lis
-	for i := 0; i < len(*lis); i++ {
-		res.Nodes[i] = *y[i].contact
-	}
+	if strings.HasPrefix(kc.kademlia.LocalFindValue(req.Key),"ERR:"){
+                lis := kc.kademlia.Kbs.FindClosest(req.Key, k)
+                res.Nodes = make([]Contact, len(*lis))
+                y := *lis
+                for i := 0; i < len(*lis); i++ {
+                        res.Nodes[i] = *y[i].contact
+                }
+        }else{
+        	res.Value = kc.kademlia.LocalFindValueval(req.Key)
 
-	return nil
+        }
+
+      return nil
 	// res.MsgID = RandomID()
 
 	// if (kc.kademlia.key == req.Key){

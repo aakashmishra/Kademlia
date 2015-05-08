@@ -1,2 +1,0 @@
-# Kademlia
-Project - 1

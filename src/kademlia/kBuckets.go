@@ -35,15 +35,16 @@ type By func(p1, p2 *ContactRecord) bool
 func (by By) Sort(ContactRecords []ContactRecord) {
 	ps := &ContactRecordSorter{
 		ContactRecords: ContactRecords,
-		by:      by, // The Sort method's receiver is the function (closure) that defines the sort order.
+		by:             by, // The Sort method's receiver is the function (closure) that defines the sort order.
 	}
 	sort.Sort(ps)
 }
 
 type ContactRecordSorter struct {
 	ContactRecords []ContactRecord
-	by      func(p1, p2 *ContactRecord) bool // Closure used in the Less method.
+	by             func(p1, p2 *ContactRecord) bool // Closure used in the Less method.
 }
+
 // type ByName struct{*[]ContactRecord}
 func (s *ContactRecordSorter) Len() int {
 	return len(s.ContactRecords)
@@ -105,7 +106,6 @@ func (kbs *KBuckets) find(findWrap FindWrap) {
 func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex int) {
 	distance := kbs.selfID.Xor(id)
 	prefixLen := distance.PrefixLen()
-	// log.Println("prefixLen: ", prefixLen)
 
 	bucket = &kbs.buckets[prefixLen]
 	contactIndex = -1
@@ -160,7 +160,7 @@ func (rec *ContactRecord) Less(other interface{}) bool {
 
 // func (s ByName) Less(i, j int) bool { return s.ContactRecord[i].sortKey.Less(s.ContactRecord[j].sortKey) }
 
-func copyToVector(start int, end int, array []Contact,ret *[]ContactRecord ,target ID)  {
+func copyToVector(start int, end int, array []Contact, ret *[]ContactRecord, target ID) {
 	//ret := make([]ContactRecord, 0)
 	//log.Println(target)
 	for elt := start; elt < end; elt++ {
@@ -173,7 +173,7 @@ func copyToVector(start int, end int, array []Contact,ret *[]ContactRecord ,targ
 
 }
 
-func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
+func (table *KBuckets) FindClosest(target ID, count int) *[]ContactRecord {
 	ret := make([]ContactRecord, 0)
 	// log.Println(target)
 	//find which bucket it belongs to
@@ -181,16 +181,16 @@ func (table *KBuckets) FindClosest(target ID, count int) (*[]ContactRecord) {
 	//load the required Bucket into the bucket
 	bucket := table.buckets[bucket_num]
 	//copy all the bucket items and store it in a vector ret
-	copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
+	copyToVector(0, len(bucket.Contacts), bucket.Contacts, &ret, target)
 	//if at all the length of the vector is not satisfied then the other buckets are taken into consideration
 	for i := 1; (bucket_num-i >= 0 || bucket_num+i < IDBits) && len(ret) < count; i++ {
 		if bucket_num-i >= 0 {
 			bucket = table.buckets[bucket_num-i]
-			copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
+			copyToVector(0, len(bucket.Contacts), bucket.Contacts, &ret, target)
 		}
 		if bucket_num+i < IDBits {
 			bucket = table.buckets[bucket_num+i]
-			copyToVector(0, len(bucket.Contacts), bucket.Contacts,&ret, target)
+			copyToVector(0, len(bucket.Contacts), bucket.Contacts, &ret, target)
 		}
 	}
 

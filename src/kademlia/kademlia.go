@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
-	"time"
+	//	"time"
 )
 
 const (
@@ -186,6 +186,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 
 	ping := new(PingMessage)
 	ping.MsgID = NewRandomID()
+	ping.Sender = k.SelfContact
 	var pong PongMessage
 	err = client.Call("KademliaCore.Ping", ping, &pong)
 	if err != nil {

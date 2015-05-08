@@ -50,10 +50,9 @@ func main() {
 		host = net.ParseIP(firstPeerStr[:split])
 	}
 	port, _ := strconv.ParseUint(firstPeerStr[split+1:], 10, 16)
-	log.Printf("%v", host)
-	log.Printf("%v", port)
-	kadem.DoPing(host, uint16(port))
+	log.Printf("first peer  %v:%v", host, port)
 
+	kadem.DoPing(host, uint16(port))
 
 	// client, err := rpc.DialHTTP("tcp", firstPeerStr)
 	// if err != nil {

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
-	"time"
+	// "time"
 )
 
 const (
@@ -72,21 +72,21 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem.SelfContact = Contact{kadem.NodeID, host, uint16(port_int)}
 
 	// TESTING!!!!!
-	log.Printf("Testing Starts!!!!")
-	numContacts := 20
-	var contacts [20]Contact
-	for i := 0; i < numContacts; i++ {
-		var id ID
-		id[0] = byte(i)
-		contacts[i] = Contact{id, host, uint16(1609 + i)}
-	}
-	log.Printf("contacts %v", contacts)
+	// log.Printf("Testing Starts!!!!")
+	// numContacts := 20
+	// var contacts [20]Contact
+	// for i := 0; i < numContacts; i++ {
+	// 	var id ID
+	// 	id[0] = byte(i)
+	// 	contacts[i] = Contact{id, host, uint16(1609 + i)}
+	// }
+	// log.Printf("contacts %v", contacts)
 
-	for i := 0; i < numContacts; i++ {
-		kadem.Kbs.Update(contacts[i])
-		log.Println(contacts[i].NodeID.AsString())
-	}
-	time.Sleep(1 * time.Second)
+	// for i := 0; i < numContacts; i++ {
+	// 	kadem.Kbs.Update(contacts[i])
+	// 	log.Println(contacts[i].NodeID.AsString())
+	// }
+	// time.Sleep(1 * time.Second)
 
 	// log.Printf("kadem.Kbs.buckets %v", kadem.Kbs.buckets)
 
@@ -178,11 +178,20 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 
 // This is the function to perform the RPC
 func (k *Kademlia) DoPing(host net.IP, port uint16) string {
+	contact, message := k.DoPingNoUpdate(host, port)
+	if strings.HasPrefix(message, "OK:") && contact != nil {
+		k.Kbs.Update(*contact)
+	}
+	return message
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+}
+
+func (k *Kademlia) DoPingNoUpdate(host net.IP, port uint16) (*Contact, string) {
 	peerStr := host.String() + ":" + strconv.Itoa(int(port))
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP failed on: %v", err)
-		return "ERR: DialHTTP failed"
+		return nil, "ERR: DialHTTP failed"
 	}
 
 	ping := new(PingMessage)
@@ -192,15 +201,12 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 	err = client.Call("KademliaCore.Ping", ping, &pong)
 	if err != nil {
 		log.Printf("Call: %v", err)
-		return "ERR: Call failed"
+		return nil, "ERR: Call failed"
 	}
 
 	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
-	return "OK:" + pong.MsgID.AsString()
-	// TODO: Implement
-	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-	//return "ERR: Not implemented"
+	log.Printf("pong msgID: %s , sender: %s %s:%d \n", pong.MsgID.AsString(), pong.Sender.NodeID.AsString(), pong.Sender.Host, pong.Sender.Port)
+	return &pong.Sender, "OK:" + pong.MsgID.AsString()
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {

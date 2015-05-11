@@ -10,8 +10,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
-	"strings"
-	//	"time"
+	"time"
 )
 
 const (
@@ -73,20 +72,21 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem.SelfContact = Contact{kadem.NodeID, host, uint16(port_int)}
 
 	// TESTING!!!!!
-	// log.Printf("Testing Starts!!!!")
-	// numContacts := 20
-	// var contacts [20]Contact
-	// for i := 0; i < numContacts; i++ {
-	// 	var id ID
-	// 	id[0] = byte(i)
-	// 	contacts[i] = Contact{id, host, uint16(1609 + i)}
-	// }
-	// log.Printf("contacts %v", contacts)
+	log.Printf("Testing Starts!!!!")
+	numContacts := 20
+	var contacts [20]Contact
+	for i := 0; i < numContacts; i++ {
+		var id ID
+		id[0] = byte(i)
+		contacts[i] = Contact{id, host, uint16(1609 + i)}
+	}
+	log.Printf("contacts %v", contacts)
 
-	// for i := 0; i < numContacts; i++ {
-	// 	kadem.Kbs.Update(contacts[i])
-	// }
-	// time.Sleep(1 * time.Second)
+	for i := 0; i < numContacts; i++ {
+		kadem.Kbs.Update(contacts[i])
+		log.Println(contacts[i].NodeID.AsString())
+	}
+	time.Sleep(1 * time.Second)
 
 	// log.Printf("kadem.Kbs.buckets %v", kadem.Kbs.buckets)
 
@@ -178,20 +178,11 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 
 // This is the function to perform the RPC
 func (k *Kademlia) DoPing(host net.IP, port uint16) string {
-	contact, message := k.DoPingNoUpdate(host, port)
-	if strings.HasPrefix(message, "OK:") && contact != nil {
-		k.Kbs.Update(*contact)
-	}
-	return message
-	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
-}
-
-func (k *Kademlia) DoPingNoUpdate(host net.IP, port uint16) (*Contact, string) {
 	peerStr := host.String() + ":" + strconv.Itoa(int(port))
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP failed on: %v", err)
-		return nil, "ERR: DialHTTP failed"
+		return "ERR: DialHTTP failed"
 	}
 
 	ping := new(PingMessage)
@@ -201,12 +192,15 @@ func (k *Kademlia) DoPingNoUpdate(host net.IP, port uint16) (*Contact, string) {
 	err = client.Call("KademliaCore.Ping", ping, &pong)
 	if err != nil {
 		log.Printf("Call: %v", err)
-		return nil, "ERR: Call failed"
+		return "ERR: Call failed"
 	}
 
 	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s , sender: %s %s:%d \n", pong.MsgID.AsString(), pong.Sender.NodeID.AsString(), pong.Sender.Host, pong.Sender.Port)
-	return &pong.Sender, "OK:" + pong.MsgID.AsString()
+	log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
+	return "OK:" + pong.MsgID.AsString()
+	// TODO: Implement
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+	//return "ERR: Not implemented"
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
@@ -258,8 +252,9 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 		return "ERR: Not implemented"
 	}
 	for i := 0; i < len(receive.Nodes); i++ {
-		// log.Printf(receive.Nodes[i].NodeID.AsString())
-		log.Printf("contact: %v", receive.Nodes[i])
+		k.Kbs.Update(receive.Nodes[i])
+		log.Printf(receive.Nodes[i].NodeID.AsString())
+		// log.Printf("contact: %v", receive.Nodes[i])
 		//log.Printf(receive.Nodes[i].NodeID.AsString())
 	}
 	// TODO: Implement
@@ -288,7 +283,8 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	}
 	log.Println(string(receive.Value))
 	for i := 0; i < len(receive.Nodes); i++ {
-		log.Printf("contact: %v", receive.Nodes[i])
+		k.Kbs.Update(receive.Nodes[i])
+		log.Printf(receive.Nodes[i].NodeID.AsString())
 	}
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
@@ -297,6 +293,7 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 
 }
+
 
 func (k *Kademlia) LocalFindValue(searchKey ID) string {
 	findReq := FindReq{searchKey, make(chan []byte, 1)}
@@ -316,8 +313,220 @@ func (k *Kademlia) LocalFindValueval(searchKey ID) []byte {
 	return val
 }
 
+func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Contact,done chan <- int) string {
+	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	log.Printf(peerStr)
+	client, err := rpc.DialHTTP("tcp", peerStr)
+	if err != nil {
+		log.Printf("DialHTTP: ", err)
+		done <- 0
+		return "ERR: Not able to connect"
+	}
+
+	send := new(FindNodeRequest)
+	receive := new(FindNodeResult)
+	send.Sender = *contact
+	send.MsgID = NewRandomID()
+	send.NodeID = searchKey
+	// log.Println("Dofind")
+	// log.Println(send.NodeID)
+
+	err = client.Call("KademliaCore.FindNode", send, &receive)
+	if err != nil {
+		log.Printf("Call: ", err)
+		done <- 0
+		return "ERR: Not implemented"
+	}
+	for i := 0; i < len(receive.Nodes); i++ {
+		k.Kbs.Update(receive.Nodes[i])
+		// log.Printf(receive.Nodes[i].NodeID.AsString())
+		list <- receive.Nodes[i]
+		// log.Printf("contact: %v", receive.Nodes[i])
+		//log.Printf(receive.Nodes[i].NodeID.AsString())
+	}
+	// TODO: Implement
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+	done <- len(receive.Nodes)
+	return "OK" + receive.MsgID.AsString()
+
+	// TODO: Implement
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+
+}
+
 func (k *Kademlia) DoIterativeFindNode(id ID) string {
-	// For project 2!
+	top3 := k.Kbs.FindClosest(id,alpha)
+	log.Println(top3)
+	y := *top3
+	check_count := 0
+	log.Println(y)
+	shortlist := make([]ContactRecord, 0)
+	for{
+		top20list := make([]ContactRecord, 0)
+		log.Println("Round start")
+		list:= make(chan Contact,60)
+		done:= make(chan int,3)
+		// count:= 3
+    	if len(shortlist) == 0{
+			for i := 0; i < len(*top3); i++ {
+		// k.Kbs.Update(receive.Nodes[i])
+				// log.Println("I am in here")
+				// log.Println(*y[i].contact)
+				cont := y[i].contact
+				go k.DoFindNodeiter(cont,id,list,done)
+		// log.Printf(cont.NodeID.AsString())
+		}
+   		}else{
+   			if len(shortlist)<3{
+   				y = shortlist
+   			}else{
+   				y = shortlist[:3]
+  	 	}
+   		for i := 0; i < len(y); i++ {
+		// k.Kbs.Update(receive.Nodes[i])
+   // 			log.Println("---------else")
+			// log.Println(y[i].contact)
+			cont := y[i].contact
+			go k.DoFindNodeiter(cont,id,list,done)
+		// log.Printf(cont.NodeID.AsString())
+		}
+   		}
+    	// fmt.Println(len(list))
+  //   if len(list) == 0{
+		// 	break
+		// }
+    // con1 := <- list
+    // log.Println("Second")
+    // top20list = append(top20list,ContactRecord{&con1, con1.NodeID.Xor(id)})
+    // fmt.Println(len(list))
+   		sum := 0
+   		for count1:=0;count1<3;count1++{
+   			buffer := <- done 
+   			sum = sum + buffer
+
+   		}
+   		log.Println(sum)
+   		for i:= 0;i<sum;i++{
+   			con := <- list
+   			// log.Println("I am here inside list")
+			duplicate := 0
+			conta := ContactRecord{&con, con.NodeID.Xor(id)}
+			// log.Println(conta)
+			// log.Println(&con)
+			// to avoid duplication of data
+			for j:=0;j<len(top20list);j++{
+				if conta.sortKey == top20list[j].sortKey{
+					duplicate  = 1
+					break
+					}
+				}
+				if duplicate == 0{
+					// log.Println("c")
+					top20list = append(top20list,ContactRecord{&con, con.NodeID.Xor(id)})
+					}
+   		}
+  //   	for {
+  //   		if count == 0 {
+  //   			break
+  //  		 	}
+		// 	select{
+		// 		case con := <- list:
+			// 		log.Println("I am here inside list")
+			// 		duplicate := 0
+			// 		conta := ContactRecord{&con, con.NodeID.Xor(id)}
+			// 		log.Println(conta)
+			// // log.Println(&con)
+			// // to avoid duplication of data
+			// 		for i:=0;i<len(top20list);i++{
+			// 			if conta == top20list[i]{
+			// 				duplicate  = 1
+			// 			}
+			// 		}
+			// 		if duplicate == 0{
+			// 			log.Println("c")
+			// 			top20list = append(top20list,ContactRecord{&con, con.NodeID.Xor(id)})
+			// 		}
+		// 		case  <- done:
+		// 			count--
+		// 			log.Println(count)
+		// 		if count == 0{
+		// 				break
+		// 		}
+
+		// 	}
+		// }
+	log.Println(len(top20list))
+		for i:=0;i<len(shortlist);i++{
+			duplicate := 0
+			// to avoid duplication of data
+			for j:=0;j<len(top20list);j++{
+				// compare1 :=*shortlist[i].contact
+				// compare2 := *top20list[j].contact
+				if  shortlist[i].sortKey==top20list[j].sortKey {
+					duplicate  = 1
+					break
+				}
+			}
+			if duplicate == 0{
+				top20list = append(top20list,shortlist[i])
+			}
+		
+		}
+
+	sortKey := func(p1,p2 *ContactRecord) bool {
+		return p1.sortKey.Less(p2.sortKey)
+	}
+	By(sortKey).Sort(top20list)
+	// NodeID := func(p1 Contact,p2 ID) bool {
+	// 	return p1.NodeID.Less(p2)
+	// }
+	// By(NodeID).Sort(top20list)
+    if len(top20list) > 20 {
+		//ret.Cut(count, ret.Len());
+		top20list = top20list[:20]
+	}
+	log.Println(top20list)
+	check := 0
+
+	for i:=0;i<len(shortlist);i++{
+		for j:=0;j<len(top20list);j++{
+			if shortlist[i].sortKey == top20list[j].sortKey{
+				check  = check + 1
+			}
+		}
+	}
+	val := 0
+	if len(top20list) < len(shortlist){
+		val =len(top20list)
+	}else{
+		val =len(shortlist)
+	}
+	// log.Println(val)
+	// log.Println(top20list)
+	log.Println("*************")
+    
+	if check == val && check_count != 0{
+		check_count ++
+		log.Println("Round over")
+		break
+	}
+	// log.Println(top20list)
+	// log.Println("*************")
+	// for i:= 0;i<len(top20list);i++{
+	// 	log.Println(*top20list[i].contact)
+	// }
+		shortlist = top20list
+		check_count ++
+	log.Println("Round over")
+	}
+	log.Println("It took me these many iterations")
+	log.Println(check_count)
+	for i:= 0;i<len(shortlist);i++{
+		cont := *shortlist[i].contact
+		log.Println(cont.NodeID.AsString())
+	}
+	
+	// // For project 2!
 	return "ERR: Not implemented"
 }
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) string {

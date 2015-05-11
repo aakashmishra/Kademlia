@@ -50,9 +50,10 @@ func main() {
 		host = net.ParseIP(firstPeerStr[:split])
 	}
 	port, _ := strconv.ParseUint(firstPeerStr[split+1:], 10, 16)
-	log.Printf("first peer  %v:%v", host, port)
-
+	log.Printf("%v", host)
+	log.Printf("%v", port)
 	kadem.DoPing(host, uint16(port))
+
 
 	// client, err := rpc.DialHTTP("tcp", firstPeerStr)
 	// if err != nil {
@@ -255,45 +256,86 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
 		response = k.DoFindValue(contact, key)
 
 	case toks[0] == "iterativeFindNode":
-		// perform an iterative find node
-		if len(toks) < 2 || len(toks) > 2 {
-			response = "usage: iterativeFindNode [nodeID]"
-			return
-		}
-		id, err := kademlia.IDFromString(toks[2])
-		if err != nil {
-			response = "ERR: Provided an invalid node ID(" + toks[1] + ")"
-			return
-		}
-		response = k.DoIterativeFindNode(id)
+        // perform an iterative find node
+        if len(toks) != 2 {
+            response = "usage: iterativeFindNode [nodeID]"
+            return
+        }
+        id, err := kademlia.IDFromString(toks[1])
+        if err != nil {
+            response = "ERR: Provided an invalid node ID(" + toks[1] + ")"
+            return
+        }
+        response = k.DoIterativeFindNode(id)
 
-	case toks[0] == "iterativeStore":
-		// perform an iterative store
-		if len(toks) < 2 || len(toks) > 2 {
-			response = "usage: iterativeStore [key] [value]"
-			return
-		}
-		key, err := kademlia.IDFromString(toks[1])
-		if err != nil {
-			response = "ERR: Provided an invalid key (" + toks[2] + ")"
-			return
-		}
-		response = k.DoIterativeStore(key, []byte(toks[2]))
+    case toks[0] == "iterativeStore":
+        // perform an iterative store
+        if len(toks) != 3 {
+            response = "usage: iterativeStore [key] [value]"
+            return
+        }
+        key, err := kademlia.IDFromString(toks[1])
+        if err != nil {
+            response = "ERR: Provided an invalid key (" + toks[1] + ")"
+            return
+        }
+        response = k.DoIterativeStore(key, []byte(toks[2]))
 
-	case toks[0] == "iterativeFindValue":
-		// performa an iterative find value
-		if len(toks) < 2 || len(toks) > 2 {
-			response = "usage: iterativeFindValue [key]"
-			return
-		}
-		key, err := kademlia.IDFromString(toks[2])
-		if err != nil {
-			response = "ERR: Provided an invalid key (" + toks[1] + ")"
-			return
-		}
-		response = k.DoIterativeFindValue(key)
+    case toks[0] == "iterativeFindValue":
+        // performa an iterative find value
+        if len(toks) != 2 {
+            response = "usage: iterativeFindValue [key]"
+            return
+        }
+        key, err := kademlia.IDFromString(toks[1])
+        if err != nil {
+            response = "ERR: Provided an invalid key (" + toks[1] + ")"
+            return
+        }
+        response = k.DoIterativeFindValue(key)
+
+	// case toks[0] == "iterativeFindNode":
+	// 	// perform an iterative find node
+	// 	if len(toks) < 2 || len(toks) > 2 {
+	// 		response = "usage: iterativeFindNode [nodeID]"
+	// 		return
+	// 	}
+	// 	id, err := kademlia.IDFromString(toks[2])
+	// 	if err != nil {
+	// 		response = "ERR: Provided an invalid node ID(" + toks[1] + ")"
+	// 		return
+	// 	}
+	// 	log.Println(id)
+	// 	response = k.DoIterativeFindNode(id)
+
+	// case toks[0] == "iterativeStore":
+	// 	// perform an iterative store
+	// 	if len(toks) < 2 || len(toks) > 2 {
+	// 		response = "usage: iterativeStore [key] [value]"
+	// 		return
+	// 	}
+	// 	key, err := kademlia.IDFromString(toks[1])
+	// 	if err != nil {
+	// 		response = "ERR: Provided an invalid key (" + toks[2] + ")"
+	// 		return
+	// 	}
+	// 	response = k.DoIterativeStore(key, []byte(toks[2]))
+
+	// case toks[0] == "iterativeFindValue":
+	// 	// performa an iterative find value
+	// 	if len(toks) < 2 || len(toks) > 2 {
+	// 		response = "usage: iterativeFindValue [key]"
+	// 		return
+	// 	}
+	// 	key, err := kademlia.IDFromString(toks[2])
+	// 	if err != nil {
+	// 		response = "ERR: Provided an invalid key (" + toks[1] + ")"
+	// 		return
+	// 	}
+	// 	response = k.DoIterativeFindValue(key)
 	default:
 		response = "ERR: Unknown command"
 	}
+
 	return
 }

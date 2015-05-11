@@ -143,9 +143,9 @@ func (kbs *KBuckets) update(contact Contact) {
 		log.Println("update - not found in bucket but there is room")
 		bucket.Contacts = append(contactsSlice, contact)
 	} else {
-		_, pongMessage := kbs.kadem.DoPingNoUpdate(contactsSlice[0].Host, contactsSlice[0].Port)
-		log.Printf("pinged! message: %v", pongMessage)
-		if strings.HasPrefix(pongMessage, "OK:") {
+		pingMessage := kbs.kadem.DoPing(contactsSlice[0].Host, contactsSlice[0].Port)
+		log.Printf("pinged! message: %v", pingMessage)
+		if strings.HasPrefix(pingMessage, "OK:") {
 			log.Println("update - ping success")
 			bucket.Contacts = append(contactsSlice[1:], contactsSlice[0])
 		} else {
@@ -202,7 +202,6 @@ func (table *KBuckets) FindClosest(target ID, count int) *[]ContactRecord {
 	By(sortKey).Sort(ret)
 
 	//sort.Sort({ret})
-
 	if len(ret) > count {
 		//ret.Cut(count, ret.Len());
 		ret = ret[:count]

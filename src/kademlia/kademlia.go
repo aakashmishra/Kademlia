@@ -294,7 +294,6 @@ func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 
 }
 
-
 func (k *Kademlia) LocalFindValue(searchKey ID) string {
 	findReq := FindReq{searchKey, make(chan []byte, 1)}
 	k.FindChan <- findReq
@@ -313,7 +312,7 @@ func (k *Kademlia) LocalFindValueval(searchKey ID) []byte {
 	return val
 }
 
-func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Contact,done chan <- int) string {
+func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Contact, done chan<- int) string {
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
 	log.Printf(peerStr)
 	client, err := rpc.DialHTTP("tcp", peerStr)
@@ -355,97 +354,97 @@ func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Co
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {
-	top3 := k.Kbs.FindClosest(id,alpha)
+	top3 := k.Kbs.FindClosest(id, alpha)
 	log.Println(top3)
 	y := *top3
 	check_count := 0
 	log.Println(y)
 	shortlist := make([]ContactRecord, 0)
-	for{
+	for {
 		top20list := make([]ContactRecord, 0)
 		log.Println("Round start")
-		list:= make(chan Contact,60)
-		done:= make(chan int,3)
+		list := make(chan Contact, 60)
+		done := make(chan int, 3)
 		// count:= 3
-    	if len(shortlist) == 0{
+		if len(shortlist) == 0 {
 			for i := 0; i < len(*top3); i++ {
-		// k.Kbs.Update(receive.Nodes[i])
+				// k.Kbs.Update(receive.Nodes[i])
 				// log.Println("I am in here")
 				// log.Println(*y[i].contact)
 				cont := y[i].contact
-				go k.DoFindNodeiter(cont,id,list,done)
-		// log.Printf(cont.NodeID.AsString())
+				go k.DoFindNodeiter(cont, id, list, done)
+				// log.Printf(cont.NodeID.AsString())
+			}
+		} else {
+			if len(shortlist) < 3 {
+				y = shortlist
+			} else {
+				y = shortlist[:3]
+			}
+			for i := 0; i < len(y); i++ {
+				// k.Kbs.Update(receive.Nodes[i])
+				// 			log.Println("---------else")
+				// log.Println(y[i].contact)
+				cont := y[i].contact
+				go k.DoFindNodeiter(cont, id, list, done)
+				// log.Printf(cont.NodeID.AsString())
+			}
 		}
-   		}else{
-   			if len(shortlist)<3{
-   				y = shortlist
-   			}else{
-   				y = shortlist[:3]
-  	 	}
-   		for i := 0; i < len(y); i++ {
-		// k.Kbs.Update(receive.Nodes[i])
-   // 			log.Println("---------else")
-			// log.Println(y[i].contact)
-			cont := y[i].contact
-			go k.DoFindNodeiter(cont,id,list,done)
-		// log.Printf(cont.NodeID.AsString())
-		}
-   		}
-    	// fmt.Println(len(list))
-  //   if len(list) == 0{
+		// fmt.Println(len(list))
+		//   if len(list) == 0{
 		// 	break
 		// }
-    // con1 := <- list
-    // log.Println("Second")
-    // top20list = append(top20list,ContactRecord{&con1, con1.NodeID.Xor(id)})
-    // fmt.Println(len(list))
-   		sum := 0
-   		for count1:=0;count1<3;count1++{
-   			buffer := <- done 
-   			sum = sum + buffer
+		// con1 := <- list
+		// log.Println("Second")
+		// top20list = append(top20list,ContactRecord{&con1, con1.NodeID.Xor(id)})
+		// fmt.Println(len(list))
+		sum := 0
+		for count1 := 0; count1 < 3; count1++ {
+			buffer := <-done
+			sum = sum + buffer
 
-   		}
-   		log.Println(sum)
-   		for i:= 0;i<sum;i++{
-   			con := <- list
-   			// log.Println("I am here inside list")
+		}
+		log.Println(sum)
+		for i := 0; i < sum; i++ {
+			con := <-list
+			// log.Println("I am here inside list")
 			duplicate := 0
 			conta := ContactRecord{&con, con.NodeID.Xor(id)}
 			// log.Println(conta)
 			// log.Println(&con)
 			// to avoid duplication of data
-			for j:=0;j<len(top20list);j++{
-				if conta.sortKey == top20list[j].sortKey{
-					duplicate  = 1
+			for j := 0; j < len(top20list); j++ {
+				if conta.sortKey == top20list[j].sortKey {
+					duplicate = 1
 					break
-					}
 				}
-				if duplicate == 0{
-					// log.Println("c")
-					top20list = append(top20list,ContactRecord{&con, con.NodeID.Xor(id)})
-					}
-   		}
-  //   	for {
-  //   		if count == 0 {
-  //   			break
-  //  		 	}
+			}
+			if duplicate == 0 {
+				// log.Println("c")
+				top20list = append(top20list, ContactRecord{&con, con.NodeID.Xor(id)})
+			}
+		}
+		//   	for {
+		//   		if count == 0 {
+		//   			break
+		//  		 	}
 		// 	select{
 		// 		case con := <- list:
-			// 		log.Println("I am here inside list")
-			// 		duplicate := 0
-			// 		conta := ContactRecord{&con, con.NodeID.Xor(id)}
-			// 		log.Println(conta)
-			// // log.Println(&con)
-			// // to avoid duplication of data
-			// 		for i:=0;i<len(top20list);i++{
-			// 			if conta == top20list[i]{
-			// 				duplicate  = 1
-			// 			}
-			// 		}
-			// 		if duplicate == 0{
-			// 			log.Println("c")
-			// 			top20list = append(top20list,ContactRecord{&con, con.NodeID.Xor(id)})
-			// 		}
+		// 		log.Println("I am here inside list")
+		// 		duplicate := 0
+		// 		conta := ContactRecord{&con, con.NodeID.Xor(id)}
+		// 		log.Println(conta)
+		// // log.Println(&con)
+		// // to avoid duplication of data
+		// 		for i:=0;i<len(top20list);i++{
+		// 			if conta == top20list[i]{
+		// 				duplicate  = 1
+		// 			}
+		// 		}
+		// 		if duplicate == 0{
+		// 			log.Println("c")
+		// 			top20list = append(top20list,ContactRecord{&con, con.NodeID.Xor(id)})
+		// 		}
 		// 		case  <- done:
 		// 			count--
 		// 			log.Println(count)
@@ -455,83 +454,92 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 
 		// 	}
 		// }
-	log.Println(len(top20list))
-		for i:=0;i<len(shortlist);i++{
+		log.Println(len(top20list))
+		for i := 0; i < len(shortlist); i++ {
 			duplicate := 0
 			// to avoid duplication of data
-			for j:=0;j<len(top20list);j++{
+			for j := 0; j < len(top20list); j++ {
 				// compare1 :=*shortlist[i].contact
 				// compare2 := *top20list[j].contact
-				if  shortlist[i].sortKey==top20list[j].sortKey {
-					duplicate  = 1
+				if shortlist[i].sortKey == top20list[j].sortKey {
+					duplicate = 1
 					break
 				}
 			}
-			if duplicate == 0{
-				top20list = append(top20list,shortlist[i])
+			if duplicate == 0 {
+				top20list = append(top20list, shortlist[i])
 			}
-		
+
 		}
 
-	sortKey := func(p1,p2 *ContactRecord) bool {
-		return p1.sortKey.Less(p2.sortKey)
-	}
-	By(sortKey).Sort(top20list)
-	// NodeID := func(p1 Contact,p2 ID) bool {
-	// 	return p1.NodeID.Less(p2)
-	// }
-	// By(NodeID).Sort(top20list)
-    if len(top20list) > 20 {
-		//ret.Cut(count, ret.Len());
-		top20list = top20list[:20]
-	}
-	log.Println(top20list)
-	check := 0
+		sortKey := func(p1, p2 *ContactRecord) bool {
+			return p1.sortKey.Less(p2.sortKey)
+		}
+		By(sortKey).Sort(top20list)
+		// NodeID := func(p1 Contact,p2 ID) bool {
+		// 	return p1.NodeID.Less(p2)
+		// }
+		// By(NodeID).Sort(top20list)
+		if len(top20list) > 20 {
+			//ret.Cut(count, ret.Len());
+			top20list = top20list[:20]
+		}
+		log.Println(top20list)
+		check := 0
 
-	for i:=0;i<len(shortlist);i++{
-		for j:=0;j<len(top20list);j++{
-			if shortlist[i].sortKey == top20list[j].sortKey{
-				check  = check + 1
+		for i := 0; i < len(shortlist); i++ {
+			for j := 0; j < len(top20list); j++ {
+				if shortlist[i].sortKey == top20list[j].sortKey {
+					check = check + 1
+				}
 			}
 		}
-	}
-	val := 0
-	if len(top20list) < len(shortlist){
-		val =len(top20list)
-	}else{
-		val =len(shortlist)
-	}
-	// log.Println(val)
-	// log.Println(top20list)
-	log.Println("*************")
-    
-	if check == val && check_count != 0{
-		check_count ++
-		log.Println("Round over")
-		break
-	}
-	// log.Println(top20list)
-	// log.Println("*************")
-	// for i:= 0;i<len(top20list);i++{
-	// 	log.Println(*top20list[i].contact)
-	// }
+		val := 0
+		if len(top20list) < len(shortlist) {
+			val = len(top20list)
+		} else {
+			val = len(shortlist)
+		}
+		// log.Println(val)
+		// log.Println(top20list)
+		log.Println("*************")
+
+		if check == val && check_count != 0 {
+			check_count++
+			log.Println("Round over")
+			break
+		}
+		// log.Println(top20list)
+		// log.Println("*************")
+		// for i:= 0;i<len(top20list);i++{
+		// 	log.Println(*top20list[i].contact)
+		// }
 		shortlist = top20list
-		check_count ++
-	log.Println("Round over")
+		check_count++
+		log.Println("Round over")
 	}
 	log.Println("It took me these many iterations")
 	log.Println(check_count)
-	for i:= 0;i<len(shortlist);i++{
+	for i := 0; i < len(shortlist); i++ {
 		cont := *shortlist[i].contact
 		log.Println(cont.NodeID.AsString())
 	}
-	
+
 	// // For project 2!
 	return "ERR: Not implemented"
 }
+func (k *Kademlia) internalDoIterativeFindNode(id ID) []Contact {
+	contacts := make([]Contact, 0)
+	return contacts
+}
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) string {
-	// For project 2!
-	return "ERR: Not implemented"
+	contacts := k.internalDoIterativeFindNode(key)
+	for i := 0; i < len(contacts); i++ {
+		k.DoStore(contacts[i], key, value)
+	}
+
+	return contacts[len(contacts)-1].NodeID.AsString()
 }
 func (k *Kademlia) DoIterativeFindValue(key ID) string {
 	// For project 2!

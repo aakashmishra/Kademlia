@@ -96,6 +96,8 @@ func NewKademlia(laddr string) *Kademlia {
 	// }
 	// time.Sleep(1 * time.Second)
 
+	// log.Printf("kadem.Kbs.buckets %v", kadem.Kbs.buckets)
+
 	// for i := 0; i < numContacts; i++ {
 	// 	found, err := kadem.FindContact(contacts[i].NodeID)
 	// 	log.Printf("found : %v err: %v", found, err)
@@ -543,7 +545,7 @@ func (k *Kademlia) internalDoIterativeFindNode(id ID) []Contact {
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) string {
 	contacts := k.internalDoIterativeFindNode(key)
 	for i := 0; i < len(contacts); i++ {
-		k.DoStore(contacts[i], key, value)
+		k.DoStore(&contacts[i], key, value)
 	}
 
 	return contacts[len(contacts)-1].NodeID.AsString()

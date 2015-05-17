@@ -14,6 +14,7 @@ type KBuckets struct {
 	kadem      *Kademlia
 	updateChan chan Contact
 	findChan   chan FindWrap
+	done   chan int
 	buckets    [IDBits]KBucket
 }
 type ContactRecord struct {
@@ -58,7 +59,7 @@ func (s *ContactRecordSorter) Less(i, j int) bool {
 
 func CreateKBuckets(k int, selfID ID, kadem *Kademlia) (kbs *KBuckets) {
 	var buckets [IDBits]KBucket
-	kbs = &KBuckets{k, selfID, kadem, make(chan Contact, 100), make(chan FindWrap, 100), buckets}
+	kbs = &KBuckets{k, selfID, kadem, make(chan Contact, 100), make(chan FindWrap, 100),make(chan int, 1), buckets}
 	for _, bucket := range kbs.buckets {
 		bucket.Contacts = make([]Contact, 0)
 	}
@@ -132,6 +133,7 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 
 func (kbs *KBuckets) Update(contact Contact) {
 	kbs.updateChan <- contact
+	<-kbs.done
 }
 
 func (kbs *KBuckets) update(contact Contact) {
@@ -157,6 +159,8 @@ func (kbs *KBuckets) update(contact Contact) {
 			bucket.Contacts = append(contactsSlice[1:], contact)
 		}
 	}
+	kbs.done <- 1
+
 }
 func (rec *ContactRecord) Less(other interface{}) bool {
 	return rec.sortKey.Less(other.(*ContactRecord).sortKey)

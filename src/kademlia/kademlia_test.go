@@ -4,6 +4,7 @@ import (
     "testing"
     "net"
     "strconv"
+    "log"
 )
 
 
@@ -28,12 +29,27 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error){
 }
 
 func TestPing(t *testing.T) {
+    instance := make([]string, 0)
+    instance_kademlia := make([]*Kademlia,0)
+
+    for i:=0;i<90;i++{
+        port := 1609 + i
+        conversion := strconv.Itoa(port)
+        instance =  append(instance,conversion)
+    }
+    for i:= 0; i<len(instance);i++{
+        buffer := NewKademlia("localhost:" + instance[i])
+        instance_kademlia = append(instance_kademlia,buffer)
+    }
     instance1 := NewKademlia("localhost:7890")
     instance2 := NewKademlia("localhost:7891")
     host2, port2, _ := StringToIpPort("localhost:7891")
-    instance1.DoPing(host2, port2)
+    save := instance1.DoPing(host2, port2)
+    log.Println("returned")
+    log.Println(save)
     contact2, err := instance1.FindContact(instance2.NodeID)
     if err != nil {
+        log.Println(err)
         t.Error("Instance 2's contact not found in Instance 1's contact list")
         return
     }

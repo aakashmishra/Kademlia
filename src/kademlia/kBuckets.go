@@ -70,10 +70,13 @@ func CreateKBuckets(k int, selfID ID, kadem *Kademlia) (kbs *KBuckets) {
 
 func (kbs *KBuckets) loop() {
 	for {
-		select {
+		select{
 		case contact := <-kbs.updateChan:
+			log.Println("updating test")
 			kbs.update(contact)
+
 		case findWrap := <-kbs.findChan:
+			log.Println("finding test")
 			kbs.find(findWrap)
 		}
 	}
@@ -95,7 +98,7 @@ func (kbs *KBuckets) FindContact(nodeId ID) (*Contact, error) {
 
 func (kbs *KBuckets) find(findWrap FindWrap) {
 	bucket, contactIndex := kbs.findBucketAndIndex(findWrap.nodeId)
-
+	log.Println(bucket)
 	if contactIndex == -1 {
 		findWrap.contactChan <- nil
 	} else {
@@ -142,6 +145,7 @@ func (kbs *KBuckets) update(contact Contact) {
 	} else if len(contactsSlice) < kbs.k {
 		log.Println("update - not found in bucket but there is room")
 		bucket.Contacts = append(contactsSlice, contact)
+		log.Println(bucket)
 	} else {
 		_, pongMessage := kbs.kadem.DoPingNoUpdate(contactsSlice[0].Host, contactsSlice[0].Port)
 		log.Printf("pinged! message: %v", pongMessage)

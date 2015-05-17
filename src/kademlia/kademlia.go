@@ -54,8 +54,12 @@ func NewKademlia(laddr string) *Kademlia {
 	// Set up RPC server
 	// NOTE: KademliaCore is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
-	rpc.Register(&KademliaCore{kadem})
-	rpc.HandleHTTP()
+	s := rpc.NewServer() // Create a new RPC server
+	s.Register(&KademliaCore{kadem})
+	_, port, _ := net.SplitHostPort(laddr)
+	s.HandleHTTP(rpc.DefaultRPCPath+port, rpc.DefaultDebugPath+port)
+	// rpc.Register(&KademliaCore{kadem})
+	// rpc.HandleHTTP()
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		log.Fatal("Listen: ", err)
@@ -187,6 +191,7 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 	contact, message := k.DoPingNoUpdate(host, port)
 	if strings.HasPrefix(message, "OK:") && contact != nil {
+		log.Println("IN HERE")
 		k.Kbs.Update(*contact)
 	}
 	return message
@@ -194,8 +199,11 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 }
 
 func (k *Kademlia) DoPingNoUpdate(host net.IP, port uint16) (*Contact, string) {
+	port_str := strconv.Itoa(int(port))
 	peerStr := host.String() + ":" + strconv.Itoa(int(port))
-	client, err := rpc.DialHTTP("tcp", peerStr)
+	client, err := rpc.DialHTTPPath("tcp", peerStr,rpc.DefaultRPCPath+port_str)
+	// peerStr := host.String() + ":" + strconv.Itoa(int(port))
+	// client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP failed on: %v", err)
 		return nil, "ERR: DialHTTP failed"
@@ -219,8 +227,9 @@ func (k *Kademlia) DoPingNoUpdate(host net.IP, port uint16) (*Contact, string) {
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+	port_str := strconv.Itoa(int(contact.Port))
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
-	client, err := rpc.DialHTTP("tcp", peerStr)
+	client, err := rpc.DialHTTPPath("tcp", peerStr,rpc.DefaultRPCPath+port_str)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
 		return "ERR: Not able to connect"
@@ -572,7 +581,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 	}
 
 	// // For project 2!
-	return "ERR: Not implemented"
+	return "ERR: "
 }
 func (k *Kademlia) internalDoIterativeFindNode(id ID) []Contact {
 	contacts := make([]Contact, 0)

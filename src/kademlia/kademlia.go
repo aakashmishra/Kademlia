@@ -35,6 +35,10 @@ type Kademlia struct {
 	FindChan    chan FindReq
 }
 
+type active struct{
+	id ID
+	val int
+}
 func NewKademlia(laddr string) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	kadem := new(Kademlia)
@@ -321,13 +325,17 @@ func (k *Kademlia) LocalFindValueval(searchKey ID) []byte {
 	return val
 }
 
-func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Contact, done chan<- int) string {
+func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Contact, done chan<- int,active_chan chan<- active) string {
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	activeval := active{}
 	log.Printf(peerStr)
 	client, err := rpc.DialHTTP("tcp", peerStr)
 	if err != nil {
 		log.Printf("DialHTTP: ", err)
 		done <- 0
+		activeval.id = searchKey
+		activeval.val = 0
+		active_chan <- activeval
 		return "ERR: Not able to connect"
 	}
 
@@ -343,6 +351,9 @@ func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Co
 	if err != nil {
 		log.Printf("Call: ", err)
 		done <- 0
+		activeval.id = searchKey
+		activeval.val = 0
+		active_chan <- activeval
 		return "ERR: Not implemented"
 	}
 	for i := 0; i < len(receive.Nodes); i++ {
@@ -355,6 +366,10 @@ func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Co
 	// TODO: Implement
 	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
 	done <- len(receive.Nodes)
+	activeval.id = searchKey
+	activeval.val = 1
+	active_chan <- activeval
+
 	return "OK" + receive.MsgID.AsString()
 
 	// TODO: Implement
@@ -363,6 +378,7 @@ func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Co
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {
+	active_map:= make(map[ID]int)
 	top3 := k.Kbs.FindClosest(id, alpha)
 	log.Println(top3)
 	y := *top3
@@ -374,6 +390,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 		log.Println("Round start")
 		list := make(chan Contact, 60)
 		done := make(chan int, 3)
+		active_chan := make(chan active, 3)
+	
 		// count:= 3
 		if len(shortlist) == 0 {
 			for i := 0; i < len(*top3); i++ {
@@ -381,7 +399,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 				// log.Println("I am in here")
 				// log.Println(*y[i].contact)
 				cont := y[i].contact
-				go k.DoFindNodeiter(cont, id, list, done)
+				go k.DoFindNodeiter(cont, id, list, done,active_chan)
 				// log.Printf(cont.NodeID.AsString())
 			}
 		} else {
@@ -395,7 +413,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 				// 			log.Println("---------else")
 				// log.Println(y[i].contact)
 				cont := y[i].contact
-				go k.DoFindNodeiter(cont, id, list, done)
+				go k.DoFindNodeiter(cont, id, list, done,active_chan)
 				// log.Printf(cont.NodeID.AsString())
 			}
 		}
@@ -411,6 +429,11 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 		for count1 := 0; count1 < 3; count1++ {
 			buffer := <-done
 			sum = sum + buffer
+
+		}
+		for count1 := 0; count1 < 3; count1++  {
+			buffer := <-active_chan
+			active_map[buffer.id] =buffer.val
 
 		}
 		log.Println(sum)
@@ -503,19 +526,33 @@ func (k *Kademlia) DoIterativeFindNode(id ID) string {
 				}
 			}
 		}
+		check_active := 0
+		for j := 0; j < len(top20list); j++ {
+			check_contact := *top20list[j].contact
+			if active_map[check_contact.NodeID] == 1{
+				check_active = check_active + 1
+
+			}
+		}
 		val := 0
 		if len(top20list) < len(shortlist) {
 			val = len(top20list)
 		} else {
 			val = len(shortlist)
 		}
+
 		// log.Println(val)
 		// log.Println(top20list)
 		log.Println("*************")
+		if check_active == len(top20list){
+			check_count++
+			log.Println("Round over due to all active nodes")
+			break
+		}
 
 		if check == val && check_count != 0 {
 			check_count++
-			log.Println("Round over")
+			log.Println("Round over due to shortlist being unchanged")
 			break
 		}
 		// log.Println(top20list)

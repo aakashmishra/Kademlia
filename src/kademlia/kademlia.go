@@ -788,6 +788,7 @@ err = client.Call("KademliaCore.FindValue", send, &receive)
 	if err != nil {
 		log.Printf("Call: ", err)
 		done <- 0
+		valu <- ""
 		return "ERR: Not implemented" 
 	}
 	log.Println(string(receive.Value))

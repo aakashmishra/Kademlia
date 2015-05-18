@@ -73,11 +73,11 @@ func (kbs *KBuckets) loop() {
 	for {
 		select{
 		case contact := <-kbs.updateChan:
-			log.Println("updating test")
+			// log.Println("updating test")
 			kbs.update(contact)
 
 		case findWrap := <-kbs.findChan:
-			log.Println("finding test")
+			// log.Println("finding test")
 			kbs.find(findWrap)
 		}
 	}
@@ -113,14 +113,14 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 	prefixLen := distance.PrefixLen()
 
 	bucket = &kbs.buckets[prefixLen]
-	log.Println("************")
+	// log.Println("************")
 	// log.Println(bucket)
 	contactIndex = -1
 	for index, otherContact := range bucket.Contacts {
 		// log.Println(otherContact.NodeID.AsString())
 		if id.Equals(otherContact.NodeID) {
 			contactIndex = index
-			log.Println(otherContact.NodeID.AsString())
+			// log.Println(otherContact.NodeID.AsString())
 			break
 		}
 	}
@@ -148,19 +148,19 @@ func (kbs *KBuckets) update(contact Contact) {
 	contactsSlice := bucket.Contacts
 	if contactIndex != -1 {
 		log.Println("update - found in bucket")
-		log.Println("self")
-		log.Println(kbs.selfID.AsString())
-		log.Println("incoming")
-		log.Println(contact.NodeID.AsString())
+		// log.Println("self")
+		// log.Println(kbs.selfID.AsString())
+		// log.Println("incoming")
+		// log.Println(contact.NodeID.AsString())
 		kbs.done <- 1
 		bucket.Contacts = append(contactsSlice[:contactIndex], append(contactsSlice[contactIndex+1:], contactsSlice[contactIndex])...)
 	} else if len(contactsSlice) < kbs.k {
 		log.Println("update - not found in bucket but there is room")
 		bucket.Contacts = append(contactsSlice, contact)
-		log.Println("self")
-		log.Println(kbs.selfID.AsString())
-		log.Println("incoming")
-		log.Println(contact.NodeID.AsString())
+		// log.Println("self")
+		// log.Println(kbs.selfID.AsString())
+		// log.Println("incoming")
+		// log.Println(contact.NodeID.AsString())
 		kbs.done <- 1
 	} else {
 		_, pongMessage := kbs.kadem.DoPingNoUpdate(contactsSlice[0].Host, contactsSlice[0].Port)

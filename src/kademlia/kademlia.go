@@ -397,11 +397,11 @@ func (k *Kademlia) DoFindNodeiter(contact *Contact, searchKey ID, list chan<- Co
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) string {
-	contactsList := internalDoIterativeFindNode(id)
+	contactsList := k.internalDoIterativeFindNode(id)
 	return ContactsListAsString(contactsList)
 }
 
-func (k *Kademlia) internalDoIterativeFindNode(id ID) []contact {
+func (k *Kademlia) internalDoIterativeFindNode(id ID) []Contact {
 	active_map := make(map[ID]int)
 	top3 := k.Kbs.FindClosest(id, alpha)
 	log.Println(top3)

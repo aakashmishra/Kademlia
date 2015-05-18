@@ -6,6 +6,7 @@ package kademlia
 
 import (
 	"net"
+	"strconv"
 	"strings"
 	// "log"
 )
@@ -19,6 +20,21 @@ type Contact struct {
 	NodeID ID
 	Host   net.IP
 	Port   uint16
+}
+
+func (contact Contact) AsString() string {
+	return "(" + contact.NodeID.AsString() + " - " + contact.Host.String() + ":" + strconv.FormatUint(uint64(contact.Port), 10) + ")"
+}
+func ContactsListAsString(cList []Contact) string {
+	resultStr := "{"
+	for i := 0; i < len(cList); i++ {
+		resultStr += cList[i].AsString()
+		if i != len(cList)-1 {
+			resultStr += " , "
+		}
+	}
+	resultStr += "}"
+	return resultStr
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -124,19 +140,19 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	// to find the k contacts closest to the NodeID
 	//left error implementation
 	//closest 20 contacts given
-	if strings.HasPrefix(kc.kademlia.LocalFindValue(req.Key),"ERR:"){
-                lis := kc.kademlia.Kbs.FindClosest(req.Key, k)
-                res.Nodes = make([]Contact, len(*lis))
-                y := *lis
-                for i := 0; i < len(*lis); i++ {
-                        res.Nodes[i] = *y[i].contact
-                }
-        }else{
-        	res.Value = kc.kademlia.LocalFindValueval(req.Key)
+	if strings.HasPrefix(kc.kademlia.LocalFindValue(req.Key), "ERR:") {
+		lis := kc.kademlia.Kbs.FindClosest(req.Key, k)
+		res.Nodes = make([]Contact, len(*lis))
+		y := *lis
+		for i := 0; i < len(*lis); i++ {
+			res.Nodes[i] = *y[i].contact
+		}
+	} else {
+		res.Value = kc.kademlia.LocalFindValueval(req.Key)
 
-        }
+	}
 
-      return nil
+	return nil
 	// res.MsgID = RandomID()
 
 	// if (kc.kademlia.key == req.Key){

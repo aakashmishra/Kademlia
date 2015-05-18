@@ -98,8 +98,9 @@ func (kbs *KBuckets) FindContact(nodeId ID) (*Contact, error) {
 }
 
 func (kbs *KBuckets) find(findWrap FindWrap) {
+	log.Println(findWrap.nodeId.AsString())
 	bucket, contactIndex := kbs.findBucketAndIndex(findWrap.nodeId)
-	log.Println(bucket)
+	// log.Println(bucket)
 	if contactIndex == -1 {
 		findWrap.contactChan <- nil
 	} else {
@@ -112,10 +113,14 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 	prefixLen := distance.PrefixLen()
 
 	bucket = &kbs.buckets[prefixLen]
+	log.Println("************")
+	// log.Println(bucket)
 	contactIndex = -1
 	for index, otherContact := range bucket.Contacts {
+		// log.Println(otherContact.NodeID.AsString())
 		if id.Equals(otherContact.NodeID) {
 			contactIndex = index
+			log.Println(otherContact.NodeID.AsString())
 			break
 		}
 	}
@@ -131,9 +136,9 @@ func (kbs *KBuckets) findBucketAndIndex(id ID) (bucket *KBucket, contactIndex in
 	return
 }
 
-func (kbs *KBuckets) Update(contact Contact) {
+func (kbs *KBuckets) Update(contact Contact) int {
 	kbs.updateChan <- contact
-	<-kbs.done
+	return <-kbs.done
 }
 
 func (kbs *KBuckets) update(contact Contact) {
@@ -143,23 +148,33 @@ func (kbs *KBuckets) update(contact Contact) {
 	contactsSlice := bucket.Contacts
 	if contactIndex != -1 {
 		log.Println("update - found in bucket")
+		log.Println("self")
+		log.Println(kbs.selfID.AsString())
+		log.Println("incoming")
+		log.Println(contact.NodeID.AsString())
+		kbs.done <- 1
 		bucket.Contacts = append(contactsSlice[:contactIndex], append(contactsSlice[contactIndex+1:], contactsSlice[contactIndex])...)
 	} else if len(contactsSlice) < kbs.k {
 		log.Println("update - not found in bucket but there is room")
 		bucket.Contacts = append(contactsSlice, contact)
-		log.Println(bucket)
+		log.Println("self")
+		log.Println(kbs.selfID.AsString())
+		log.Println("incoming")
+		log.Println(contact.NodeID.AsString())
+		kbs.done <- 1
 	} else {
 		_, pongMessage := kbs.kadem.DoPingNoUpdate(contactsSlice[0].Host, contactsSlice[0].Port)
 		log.Printf("pinged! message: %v", pongMessage)
 		if strings.HasPrefix(pongMessage, "OK:") {
 			log.Println("update - ping success")
+			kbs.done <- 2
 			bucket.Contacts = append(contactsSlice[1:], contactsSlice[0])
 		} else {
 			log.Println("update - ping failed")
 			bucket.Contacts = append(contactsSlice[1:], contact)
 		}
 	}
-	kbs.done <- 1
+	
 
 }
 func (rec *ContactRecord) Less(other interface{}) bool {

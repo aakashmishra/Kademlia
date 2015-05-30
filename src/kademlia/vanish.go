@@ -81,8 +81,14 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	accessKey := GenerateRandomAccessKey()
 	ids := CalculateSharedKeyLocations(accessKey, numberKeys)
 
-	// STORE each key peace in its apropriate id Node
-	// use all := append([]byte{k}, v...) in order to store both the key and value from the map
+	for x := byte(1); x <= numberKeys; x++ {
+		all := append([]byte{x}, keyPieces[x])
+		_ := kadem.DoIterativeStore(ids[x], all)
+	}
+
+	for k, v := range keyPieces {
+
+	}
 
 	vdo.AccessKey = accessKey
 	vdo.Ciphertext = cipher

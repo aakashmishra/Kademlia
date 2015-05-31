@@ -82,7 +82,13 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	ids := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 
 	for x := byte(1); x <= numberKeys; x++ {
+		fmt.Println("key part: %s", x)
+		fmt.Println("value part: %s", keyPieces[x])
 		all := append([]byte{x}, keyPieces[x]...)
+		fmt.Println("all to be stored: %s", all)
+
+		// Problem!
+		// We need a way to do later Find value and get these values back
 		kadem.DoIterativeStore(ids[x], all)
 	}
 
@@ -97,5 +103,22 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
+	ids := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
+
+	keyPieces := make(map[byte][]byte)
+	keyPiecesFound := byte(0)
+	for x := 1; x <= len(ids); x++ {
+		// Problem!
+		// We need a way to ask for the right values from the nodes
+		// var contacts []Contact = kadem.internalDoIterativeFindNode(ids[x])
+
+		if keyPiecesFound >= vdo.Threshold {
+			break
+		}
+	}
+
+	key := sss.Combine(keyPieces)
+	data = decrypt(key, vdo.Ciphertext)
+
 	return
 }

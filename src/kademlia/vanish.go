@@ -79,19 +79,15 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	ciphertext := encrypt(key, data)
 	keyPieces, _ := sss.Split(numberKeys, threshold, key)
 	accessKey := GenerateRandomAccessKey()
-	ids := CalculateSharedKeyLocations(accessKey, numberKeys)
+	ids := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 
 	for x := byte(1); x <= numberKeys; x++ {
-		all := append([]byte{x}, keyPieces[x])
-		_ := kadem.DoIterativeStore(ids[x], all)
-	}
-
-	for k, v := range keyPieces {
-
+		all := append([]byte{x}, keyPieces[x]...)
+		kadem.DoIterativeStore(ids[x], all)
 	}
 
 	vdo.AccessKey = accessKey
-	vdo.Ciphertext = cipher
+	vdo.Ciphertext = ciphertext
 	vdo.NumberKeys = numberKeys
 	vdo.Threshold = threshold
 

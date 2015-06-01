@@ -298,16 +298,18 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
     		response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
     		return
     	}
-    	VDO_ID, err := kademlia.IDFromString(toks[1])
-    	if err != nil {
-    		response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
-    		return
-    	}
     	data := []byte(toks[2])
-    	numberKeys := byte(toks[3])
-    	threshold := byte(toks[4])
-    	kadem := new(Kademlia)
-    	response = k.VanishData(kadem,data,numberKeys,threshold)
+    	numberKeys := strconv.Atoi(toks[3])
+    	if numberKeys != nil{
+    		return "ERR: Invalid numberKeys"
+    	}
+
+    	threshold := strconv.Atoi(toks[4])
+    	if threshold != nil{
+    		return "ERR: invalid threshold"
+    	}
+    	k.VanishData(*k,data,numberKeys,threshold)
+    	response = "Created VDO successfully"
     case: toks[0] == "unvanish":
     	if len(toks) != 3{
     		response = "Usage: unvanish [Node ID] [VDO ID]"
@@ -318,14 +320,9 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
     		response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
     		return
     	}
-    	VDO_ID , err := kadem.IDFromString(toks[2])
-    	if err != nil {
-    		response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
-    		return
-    	}
-    	kadem := new(kademlia)
     	vdo := new(VanishDataObject)
-    	response = k.UnvanishData(kadem, vdo)
+    	k.UnvanishData(*k, vdo)
+    	response = "Unvanish successful"
 
 
     	

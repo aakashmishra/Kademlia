@@ -298,31 +298,51 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
     		response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
     		return
     	}
-    	data := []byte(toks[2])
-    	numberKeys := strconv.Atoi(toks[3])
-    	if numberKeys != nil{
-    		return "ERR: Invalid numberKeys"
-    	}
+    	// VDO_ID, err := kademlia.IDFromString(toks[1])
+    	// if err != nil {
+    	// 	response = "ERR: Provided an invalid key (" + toks[1] + ")"
+    	// 	return
+    	// }
+    	numberKeys,err := strconv.Atoi(toks[3])
+	  	if err != nil{
+	   		return "ERR: Invalid numberKeys"
+	  	}
+	  	threshold,err := strconv.Atoi(toks[4])
+	 	if err != nil{
+			return "ERR: invalid threshold"
+	   	}
 
-    	threshold := strconv.Atoi(toks[4])
-    	if threshold != nil{
-    		return "ERR: invalid threshold"
-    	}
-    	k.VanishData(*k,data,numberKeys,threshold)
-    	response = "Created VDO successfully"
-    case: toks[0] == "unvanish":
+    	data := []byte(toks[2])
+    	kademlia.VanishData(*k,data,byte(numberKeys),byte(threshold))
+
+    case toks[0] == "unvanish":
     	if len(toks) != 3{
     		response = "Usage: unvanish [Node ID] [VDO ID]"
     		return
     	}
-    	NodeID , err := kademlia.IDFromString(toks[1])
+    	nodeId, err := kademlia.IDFromString(toks[1])
+		if err != nil {
+			response = "ERR: Provided an invalid node ID (" + toks[1] + ")"
+			return
+		}
+		vdoid, err := kademlia.IDFromString(toks[2])
+		if err != nil {
+			response = "ERR: Provided an invalid node ID (" + toks[1] + ")"
+			return
+		}
+    	contact,err := k.FindContact(nodeId)
     	if err != nil {
     		response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
     		return
     	}
-    	vdo := new(VanishDataObject)
-    	k.UnvanishData(*k, vdo)
-    	response = "Unvanish successful"
+    	// VDO_ID , err := kadem.IDFromString(toks[2])
+    	// if err != nil {
+    	// 	response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
+    	// 	return
+    	// }
+
+    	vdo,_ := k.DoFindVdo(contact,vdoid)  
+    	kademlia.UnvanishData(*k,vdo)
 
 
     	

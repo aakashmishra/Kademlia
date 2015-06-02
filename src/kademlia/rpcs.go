@@ -170,3 +170,21 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	//  }
 
 }
+
+type GetVDORequest struct {
+    Sender Contact
+    MsgID ID
+    VdoID ID
+}
+
+type GetVDOResult struct{
+    MsgID ID
+    VDO VanashingDataObject
+}
+
+func (kc *KademliaCore) GetVDO(req GetVDORequest, res *GetVDOResult) error {
+	res.MsgID = NewRandomID()
+	res.VDO = kc.kademlia.LocalFindVdo(req.VdoID)
+    // fill in
+    return nil
+}

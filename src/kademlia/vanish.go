@@ -99,7 +99,7 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 
 	fmt.Println("Created VDO is %s", vdo)
 
-	return
+	return vdo
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {

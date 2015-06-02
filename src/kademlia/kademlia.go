@@ -25,6 +25,16 @@ type FindReq struct {
 	valueChan chan []byte
 }
 
+type Find_VDO struct {
+	key       ID
+	VDO 	VanashingDataObject
+}
+
+type Add_VDO struct {
+	key       ID
+	VDO 	VanashingDataObject
+}
+
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
 	NodeID      ID
@@ -33,6 +43,9 @@ type Kademlia struct {
 	HashTable   map[ID][]byte
 	StoreChan   chan StoreRequest
 	FindChan    chan FindReq
+	VDO_map 	map[ID] VanashingDataObject
+	store_VDO 	chan Add_VDO
+	find_VDO	chan Find_VDO
 }
 
 type active struct{
@@ -50,11 +63,12 @@ func NewKademlia(laddr string) *Kademlia {
 	kadem.Kbs = CreateKBuckets(k, kadem.NodeID, kadem)
 
 	kadem.HashTable = make(map[ID][]byte)
+	kadem.VDO_map = make(map[ID] VanashingDataObject)
 	kadem.StoreChan = make(chan StoreRequest, 100)
 	kadem.FindChan = make(chan FindReq, 100)
 
 	go kadem.LoopOverMap()
-
+	go kadem.LoopOverVDO()
 	// Set up RPC server
 	// NOTE: KademliaCore is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -173,6 +187,18 @@ func (k *Kademlia) LoopOverMap() {
 	}
 }
 
+func (k *Kademlia) LoopOverVDO() {
+	for {
+		select {
+		case storeReq_vdo := <-k.store_VDO:
+			k.VDO_map[storeReq_vdo.key] = storeReq_vdo.VDO
+		case findReq_vdo := <-k.find_VDO:
+			findReq_vdo.VDO = k.VDO_map[findReq_vdo.key]
+		}
+
+	}
+}
+
 type NotFoundError struct {
 	id  ID
 	msg string
@@ -190,6 +216,8 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	}
 	return k.Kbs.FindContact(nodeId)
 }
+
+
 
 // This is the function to perform the RPC
 func (k *Kademlia) DoPing(host net.IP, port uint16) string {
@@ -291,6 +319,28 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) string {
 	return "OK" + receive.MsgID.AsString()
 }
 
+func (k *Kademlia) DoFindVdo(contact *Contact,VDO_ID ID) (VanashingDataObject, string) {
+	ret := new(VanashingDataObject)
+	port_str := strconv.Itoa(int(contact.Port))
+	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTPPath("tcp", peerStr,rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Printf("DialHTTP: ", err)
+		return *ret,"ERR: Not able to connect"
+	}
+	sender := new(GetVDORequest)
+	receiver := new(GetVDOResult)
+	sender.Sender = *contact
+	sender.MsgID = NewRandomID()
+	sender.VdoID = VDO_ID
+	err = client.Call("KademliaCore.GetVDO", sender, &receiver)
+	if err != nil {
+		log.Printf("Call: ", err)
+		return *ret,"ERR: Not implemented"
+	}
+	return receiver.VDO,"OK"
+	}
+
 func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) string {
 	peerStr := contact.Host.String() + ":" + strconv.Itoa(int(contact.Port))
 	client, err := rpc.DialHTTP("tcp", peerStr)
@@ -333,6 +383,16 @@ func (k *Kademlia) LocalFindValue(searchKey ID) string {
 		return "OK: " + string(val)
 	}
 }
+
+func (k *Kademlia) LocalFindVdo(searchKey ID) VanashingDataObject {
+	findReq := Find_VDO{searchKey,*(new(VanashingDataObject))}
+	k.find_VDO <- findReq
+	val := findReq.VDO
+	return val
+}
+
+
+
 
 func (k *Kademlia) LocalFindValueval(searchKey ID) []byte {
 	findReq := FindReq{searchKey, make(chan []byte, 1)}

@@ -298,11 +298,11 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
     		response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
     		return
     	}
-    	// VDO_ID, err := kademlia.IDFromString(toks[1])
-    	// if err != nil {
-    	// 	response = "ERR: Provided an invalid key (" + toks[1] + ")"
-    	// 	return
-    	// }
+    	VDO_ID, err := kademlia.IDFromString(toks[1])
+    	if err != nil {
+    		response = "ERR: Provided an invalid key (" + toks[1] + ")"
+    		return
+    	}
     	numberKeys,err := strconv.Atoi(toks[3])
 	  	if err != nil{
 	   		return "ERR: Invalid numberKeys"
@@ -313,7 +313,7 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
 	   	}
 
     	data := []byte(toks[2])
-    	kademlia.VanishData(*k,data,byte(numberKeys),byte(threshold))
+    	kademlia.VanishData(*k,data,byte(numberKeys),byte(threshold),VDO_ID)
 
     case toks[0] == "unvanish":
     	if len(toks) != 3{
@@ -340,8 +340,10 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
     	// 	response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
     	// 	return
     	// }
-
-    	vdo,_ := k.DoFindVdo(contact,vdoid)  
+    	log.Println("calling_vdo")
+    	vdo,_ := k.DoFindVdo(contact,vdoid)
+    	log.Println("calling_unvanish")
+    	log.Println(vdo)  
     	kademlia.UnvanishData(*k,vdo)
 
 

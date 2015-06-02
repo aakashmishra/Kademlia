@@ -9,6 +9,7 @@ import (
 	mathrand "math/rand"
 	"sss"
 	"time"
+	"log"
 )
 
 type VanashingDataObject struct {
@@ -74,7 +75,7 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 }
 
 func VanishData(kadem Kademlia, data []byte, numberKeys byte,
-	threshold byte) (vdo VanashingDataObject) {
+	threshold byte,vdoid ID) (vdo VanashingDataObject) {
 	key := GenerateRandomCryptoKey()
 	ciphertext := encrypt(key, data)
 	keyPieces, _ := sss.Split(numberKeys, threshold, key)
@@ -89,36 +90,46 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 
 		// Problem!
 		// We need a way to do later Find value and get these values back
-		kadem.DoIterativeStore(ids[x], all)
+		kadem.DoIterativeStore(ids[x-1], all)
 	}
 
 	vdo.AccessKey = accessKey
 	vdo.Ciphertext = ciphertext
 	vdo.NumberKeys = numberKeys
 	vdo.Threshold = threshold
-
+	vdo_push := new(Add_VDO)
+	vdo_push.key = vdoid
+	vdo_push.VDO = vdo
+	log.Println(vdo_push)
+	log.Println(len(kadem.store_VDO))
+	kadem.store_VDO <- *vdo_push
 	fmt.Println("Created VDO is %s", vdo)
 
 	return vdo
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
-	ids := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
 
+	ids := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
 	keyPieces := make(map[byte][]byte)
 	keyPiecesFound := byte(0)
 	for x := 1; x <= len(ids); x++ {
 		// Problem!
 		// We need a way to ask for the right values from the nodes
-		// var contacts []Contact = kadem.internalDoIterativeFindNode(ids[x])
-
+		value := kadem.DoIterativeFindValueval(ids[x-1])
+		log.Println(value)
+		if value != nil{
+			keyPieces[byte(x)] = value 
+			keyPiecesFound = keyPiecesFound + 1
+		}
 		if keyPiecesFound >= vdo.Threshold {
 			break
 		}
 	}
-
-	key := sss.Combine(keyPieces)
-	data = decrypt(key, vdo.Ciphertext)
-
-	return
+	if keyPiecesFound >= vdo.Threshold{
+		key := sss.Combine(keyPieces)
+		data = decrypt(key, vdo.Ciphertext)
+	}
+	log.Println(data)
+	return data
 }

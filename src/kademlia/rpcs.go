@@ -8,7 +8,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	// "log"
+	 "log"
 )
 
 type KademliaCore struct {
@@ -183,6 +183,7 @@ type GetVDOResult struct{
 }
 
 func (kc *KademliaCore) GetVDO(req GetVDORequest, res *GetVDOResult) error {
+	log.Println("rpcs called")
 	res.MsgID = NewRandomID()
 	res.VDO = kc.kademlia.LocalFindVdo(req.VdoID)
     // fill in

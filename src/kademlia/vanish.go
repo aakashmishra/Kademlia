@@ -6,10 +6,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"log"
 	mathrand "math/rand"
 	"sss"
 	"time"
-	"log"
 )
 
 type VanashingDataObject struct {
@@ -75,7 +75,7 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 }
 
 func VanishData(kadem Kademlia, data []byte, numberKeys byte,
-	threshold byte,vdoid ID) (vdo VanashingDataObject) {
+	threshold byte, vdoid ID) (vdo VanashingDataObject) {
 	key := GenerateRandomCryptoKey()
 	ciphertext := encrypt(key, data)
 	keyPieces, _ := sss.Split(numberKeys, threshold, key)
@@ -83,8 +83,6 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	ids := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 
 	for x := byte(1); x <= numberKeys; x++ {
-		fmt.Println("key part: %s", x)
-		fmt.Println("value part: %s", keyPieces[x])
 		all := append([]byte{x}, keyPieces[x]...)
 		fmt.Println("all to be stored: %s", all)
 
@@ -116,17 +114,20 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 	for x := 1; x <= len(ids); x++ {
 		// Problem!
 		// We need a way to ask for the right values from the nodes
-		value := kadem.DoIterativeFindValueval(ids[x-1])
-		log.Println(value)
-		if value != nil{
-			keyPieces[byte(x)] = value 
-			keyPiecesFound = keyPiecesFound + 1
+		all := kadem.DoIterativeFindValueval(ids[x-1])
+		log.Println(all)
+		k := all[0]
+		v := all[1:]
+		if all != nil {
+			fmt.Println("all founed: %s", all)
+			keyPieces[k] = v
+			keyPiecesFound += 1
 		}
 		if keyPiecesFound >= vdo.Threshold {
 			break
 		}
 	}
-	if keyPiecesFound >= vdo.Threshold{
+	if keyPiecesFound >= vdo.Threshold {
 		key := sss.Combine(keyPieces)
 		data = decrypt(key, vdo.Ciphertext)
 	}

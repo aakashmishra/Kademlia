@@ -131,6 +131,6 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 		key := sss.Combine(keyPieces)
 		data = decrypt(key, vdo.Ciphertext)
 	}
-	log.Println(data)
+	log.Println(string(data[:]))
 	return data
 }
